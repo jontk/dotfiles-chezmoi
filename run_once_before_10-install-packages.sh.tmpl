@@ -1,0 +1,158 @@
+#!/bin/bash
+# One-time package installation script
+# Runs before chezmoi applies dotfiles
+# Profile: {{ .profile }}
+
+set -e
+
+echo "Installing packages for {{ .profile }} profile on {{ .chezmoi.os }}..."
+
+{{- if eq .chezmoi.os "darwin" }}
+# macOS: Homebrew packages
+if ! command -v brew >/dev/null 2>&1; then
+    echo "Homebrew not found. Please install from https://brew.sh"
+    exit 1
+fi
+
+echo "Installing Homebrew packages..."
+brew bundle --no-lock --file=/dev/stdin <<EOF
+# Core utilities
+brew "git"
+brew "fzf"
+brew "ripgrep"
+brew "fd"
+brew "bat"
+brew "exa"
+
+{{- if .features.starship }}
+# Starship prompt
+brew "starship"
+{{- end }}
+
+{{- if .features.tmux }}
+# Tmux
+brew "tmux"
+{{- end }}
+
+{{- if .features.nodejs }}
+# Node.js tools
+brew "node"
+{{- end }}
+
+{{- if .features.python }}
+# Python tools
+brew "python"
+brew "pyenv"
+{{- end }}
+
+{{- if .features.golang }}
+# Go
+brew "go"
+{{- end }}
+
+{{- if .features.docker }}
+# Docker
+brew "docker"
+brew "docker-compose"
+{{- end }}
+
+{{- if .features.kubernetes }}
+# Kubernetes tools
+brew "kubectl"
+brew "k9s"
+brew "helm"
+{{- end }}
+EOF
+
+{{- else if eq .chezmoi.osRelease.id "fedora" }}
+# Fedora
+echo "Installing DNF packages..."
+sudo dnf install -y \
+    git \
+    fzf \
+    ripgrep \
+    fd-find \
+    bat \
+{{- if .features.starship }}
+    starship \
+{{- end }}
+{{- if .features.tmux }}
+    tmux \
+{{- end }}
+{{- if .features.nodejs }}
+    nodejs \
+{{- end }}
+{{- if .features.python }}
+    python3 \
+    python3-pip \
+{{- end }}
+{{- if .features.golang }}
+    golang \
+{{- end }}
+{{- if .features.docker }}
+    docker \
+    docker-compose \
+{{- end }}
+{{- if .features.kubernetes }}
+    kubectl \
+{{- end }}
+    && true
+
+{{- else if eq .chezmoi.osRelease.id "ubuntu" }}
+# Ubuntu/Debian
+echo "Installing APT packages..."
+sudo apt update && sudo apt install -y \
+    git \
+    fzf \
+    ripgrep \
+    fd-find \
+    bat \
+{{- if .features.tmux }}
+    tmux \
+{{- end }}
+{{- if .features.nodejs }}
+    nodejs \
+    npm \
+{{- end }}
+{{- if .features.python }}
+    python3 \
+    python3-pip \
+{{- end }}
+{{- if .features.golang }}
+    golang \
+{{- end }}
+{{- if .features.docker }}
+    docker.io \
+    docker-compose \
+{{- end }}
+    && true
+
+{{- if .features.starship }}
+# Install starship (not in Ubuntu repos)
+curl -sS https://starship.rs/install.sh | sh -s -- -y
+{{- end }}
+
+{{- else if or (eq .chezmoi.osRelease.id "rhel") (eq .chezmoi.osRelease.id "rocky") (eq .chezmoi.osRelease.id "almalinux") }}
+# RHEL/Rocky/AlmaLinux
+echo "Installing DNF packages..."
+sudo dnf install -y \
+    git \
+    fzf \
+    ripgrep \
+{{- if .features.tmux }}
+    tmux \
+{{- end }}
+{{- if .features.python }}
+    python3 \
+    python3-pip \
+{{- end }}
+    && true
+
+{{- if .features.starship }}
+# Install starship (not in RHEL repos)
+curl -sS https://starship.rs/install.sh | sh -s -- -y
+{{- end }}
+
+{{- end }}
+
+echo "Package installation complete!"

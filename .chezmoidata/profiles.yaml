@@ -1,0 +1,31 @@
+# Profile definitions mirrored from original config/profiles.yml
+# This provides shared data for template conditionals
+
+profiles:
+  minimal:
+    name: "Minimal Base"
+    description: "Basic shell and git configuration only"
+    modules: [shell, git]
+
+  personal:
+    name: "Personal Development"
+    description: "Personal development environment with full feature set"
+    modules: [shell, git, editors, tmux, starship, nodejs, python, golang]
+
+  work:
+    name: "Work Environment"
+    description: "Professional work environment with company-specific settings"
+    modules: [shell, git, editors, tmux, starship, nodejs, python, golang]
+    work_mode: true
+
+  server:
+    name: "Server Environment"
+    description: "Lightweight configuration for server/remote environments"
+    modules: [shell, git, editors]
+    minimal: true
+
+  experimental:
+    name: "Experimental Setup"
+    description: "Cutting-edge tools and experimental configurations"
+    modules: [shell, git, editors, tmux, starship, nodejs, python, golang]
+    beta_features: true

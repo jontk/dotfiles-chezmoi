@@ -1,0 +1,106 @@
+{{- $profile := promptStringOnce . "profile" "Profile (minimal/personal/work/server/experimental)" "personal" -}}
+{{- $gitEmail := promptStringOnce . "git.email" "Git email" "" -}}
+{{- $gitName := promptStringOnce . "git.name" "Git name" "" -}}
+{{- $workGitEmail := "" -}}
+{{- $workGitName := "" -}}
+{{- $workGpgKey := "" -}}
+{{- if eq $profile "work" -}}
+{{-   $workGitEmail = promptStringOnce . "git.workEmail" "Work Git email" "" -}}
+{{-   $workGitName = promptStringOnce . "git.workName" "Work Git name" "" -}}
+{{-   $workGpgKey = promptStringOnce . "git.workGpgKey" "Work GPG key (optional)" "" -}}
+{{- end -}}
+
+[data]
+    profile = {{ $profile | quote }}
+    hostname = {{ .chezmoi.hostname | quote }}
+
+    [data.git]
+        email = {{ $gitEmail | quote }}
+        name = {{ $gitName | quote }}
+        {{- if eq $profile "work" }}
+        workEmail = {{ $workGitEmail | quote }}
+        workName = {{ $workGitName | quote }}
+        workGpgKey = {{ $workGpgKey | quote }}
+        {{- end }}
+
+    # Profile-specific feature flags
+    {{- if eq $profile "minimal" }}
+    [data.features]
+        editors_full = false
+        docker = false
+        kubernetes = false
+        nodejs = false
+        python = false
+        golang = false
+        starship = false
+        tmux = false
+
+    {{- else if eq $profile "personal" }}
+    [data.features]
+        editors_full = true
+        docker = true
+        kubernetes = true
+        nodejs = true
+        python = true
+        golang = true
+        starship = true
+        tmux = true
+
+    {{- else if eq $profile "work" }}
+    [data.features]
+        editors_full = true
+        docker = true
+        kubernetes = true
+        nodejs = true
+        python = true
+        golang = true
+        starship = true
+        tmux = true
+        work_specific = true
+
+    {{- else if eq $profile "server" }}
+    [data.features]
+        editors_full = false
+        docker = true
+        kubernetes = false
+        nodejs = false
+        python = false
+        golang = false
+        starship = false
+        tmux = false
+        minimal_prompt = true
+
+    {{- else if eq $profile "experimental" }}
+    [data.features]
+        editors_full = true
+        docker = true
+        kubernetes = true
+        nodejs = true
+        python = true
+        golang = true
+        starship = true
+        tmux = true
+        beta_features = true
+        neovim = true
+    {{- end }}
+
+    # Shell settings
+    [data.shell]
+        {{- if eq $profile "minimal" }}
+        prompt_style = "simple"
+        enable_functions = true
+        {{- else if eq $profile "server" }}
+        prompt_style = "simple"
+        enable_functions = false
+        {{- else if or (eq $profile "personal") (eq $profile "work") (eq $profile "experimental") }}
+        prompt_style = "starship"
+        enable_functions = true
+        {{- end }}
+
+    # Editor settings
+    [data.editor]
+        {{- if eq $profile "experimental" }}
+        default = "nvim"
+        {{- else }}
+        default = "vim"
+        {{- end }}

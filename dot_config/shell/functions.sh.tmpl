@@ -1,0 +1,116 @@
+# Shared shell functions
+# This file is sourced by both bash and zsh
+{{- if .shell.enable_functions }}
+
+# Extract various archive formats
+_extract() {
+    if [[ -f "$1" ]]; then
+        case "$1" in
+            *.tar.bz2)   tar xvjf "$1"    ;;
+            *.tar.gz)    tar xvzf "$1"    ;;
+            *.tar.xz)    tar xvJf "$1"    ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xvf "$1"     ;;
+            *.tbz2)      tar xvjf "$1"    ;;
+            *.tgz)       tar xvzf "$1"    ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *)           echo "Don't know how to extract '$1'" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Create backup of file or directory
+_backup() {
+    local item="$1"
+    if [[ -z "$item" ]]; then
+        echo "Usage: backup <file_or_directory>"
+        return 1
+    fi
+
+    local backup_name="${item}_backup_$(date +%Y%m%d_%H%M%S)"
+    cp -r "$item" "$backup_name"
+    echo "Backup created: $backup_name"
+}
+
+# Search for files containing text
+_search() {
+    local pattern="$1"
+    local path="${2:-.}"
+
+    if [[ -z "$pattern" ]]; then
+        echo "Usage: search <pattern> [path]"
+        return 1
+    fi
+
+    if command -v rg >/dev/null 2>&1; then
+        rg "$pattern" "$path"
+    elif command -v ag >/dev/null 2>&1; then
+        ag "$pattern" "$path"
+    else
+        grep -r "$pattern" "$path"
+    fi
+}
+
+# Make directory and cd into it
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Find files by name pattern
+ff() {
+    find . -type f -name "*$1*" 2>/dev/null
+}
+
+# Find directories by name pattern
+fd() {
+    find . -type d -name "*$1*" 2>/dev/null
+}
+
+# Quick web search
+websearch() {
+    local query="$*"
+    local url="https://www.google.com/search?q=${query// /+}"
+
+    case "$(uname -s)" in
+        Darwin*) open "$url" ;;
+        Linux*) xdg-open "$url" ;;
+        *) echo "Search URL: $url" ;;
+    esac
+}
+
+# Show system information
+sysinfo() {
+    echo "System Information:"
+    echo "  OS: $(uname -s)"
+    echo "  Kernel: $(uname -r)"
+    echo "  Architecture: $(uname -m)"
+    echo "  Hostname: $(hostname)"
+    echo "  Uptime: $(uptime | cut -d',' -f1 | cut -d' ' -f4-)"
+    echo "  Load: $(uptime | rev | cut -d':' -f1 | rev)"
+    echo "  Memory: $(free -h 2>/dev/null | grep '^Mem:' | awk '{print $3 "/" $2}' || echo 'N/A')"
+    echo "  Disk: $(df -h . | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')"
+}
+
+# Process management helpers
+psg() {
+    ps aux | grep -v grep | grep -i "$1"
+}
+
+# Path management
+path_add() {
+    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1:$PATH"
+    fi
+}
+
+path_remove() {
+    export PATH=$(echo ":$PATH:" | sed "s|:$1:|:|g" | sed 's/^://;s/:$//')
+}
+
+{{- end }}

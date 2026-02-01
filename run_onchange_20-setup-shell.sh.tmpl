@@ -1,0 +1,63 @@
+#!/bin/bash
+# Shell setup script
+# Runs whenever this script changes
+# Profile: {{ .profile }}
+
+set -e
+
+echo "Setting up shell environment for {{ .profile }} profile..."
+
+# Install fzf key bindings and fuzzy completion
+if command -v fzf >/dev/null 2>&1; then
+    echo "Setting up fzf..."
+
+    # Install fzf keybindings for bash
+    if [[ -n "$BASH_VERSION" ]]; then
+        if [[ -f /usr/share/doc/fzf/examples/key-bindings.bash ]]; then
+            echo "source /usr/share/doc/fzf/examples/key-bindings.bash" >> ~/.bashrc.local
+        elif [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.bash ]]; then
+            echo "source /opt/homebrew/opt/fzf/shell/key-bindings.bash" >> ~/.bashrc.local
+        fi
+    fi
+
+    # Install fzf keybindings for zsh
+    if [[ -n "$ZSH_VERSION" ]]; then
+        if [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]]; then
+            echo "source /usr/share/doc/fzf/examples/key-bindings.zsh" >> ~/.zshrc.local
+        elif [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
+            echo "source /opt/homebrew/opt/fzf/shell/key-bindings.zsh" >> ~/.zshrc.local
+        fi
+    fi
+fi
+
+{{- if .features.tmux }}
+# Install TPM (Tmux Plugin Manager) if not present
+if [[ ! -d ~/.tmux/plugins/tpm ]]; then
+    echo "Installing TPM (Tmux Plugin Manager)..."
+    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+    echo "TPM installed. Run 'prefix + I' in tmux to install plugins."
+fi
+{{- end }}
+
+{{- if .features.nodejs }}
+# Install NVM if not present
+if [[ ! -d ~/.nvm ]]; then
+    echo "Installing NVM (Node Version Manager)..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+    nvm install --lts
+fi
+{{- end }}
+
+{{- if .features.python }}
+# Install pyenv if not present
+if [[ ! -d ~/.pyenv ]] && command -v pyenv >/dev/null 2>&1; then
+    echo "Pyenv is already installed via package manager"
+elif [[ ! -d ~/.pyenv ]]; then
+    echo "Installing pyenv..."
+    curl https://pyenv.run | bash
+fi
+{{- end }}
+
+echo "Shell setup complete!"

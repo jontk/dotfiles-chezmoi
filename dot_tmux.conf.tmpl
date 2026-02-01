@@ -1,0 +1,428 @@
+# tmux.conf - Enhanced tmux configuration
+# Modern tmux configuration for development environments
+
+# ============================================================================
+# General Settings
+# ============================================================================
+
+# Use 256 colors
+set -g default-terminal "screen-256color"
+set -ga terminal-overrides ",xterm-256color*:Tc"
+
+# Enable true color support
+set -sa terminal-features ',xterm-256color:RGB'
+
+# Set scrollback buffer size
+set -g history-limit 50000
+
+# Enable mouse support
+set -g mouse on
+
+# Start window and pane numbering from 1
+set -g base-index 1
+setw -g pane-base-index 1
+
+# Renumber windows when one is closed
+set -g renumber-windows on
+
+# Set escape time for faster command sequences
+set -sg escape-time 0
+
+# Increase repeat time for repeatable commands
+set -g repeat-time 1000
+
+# Focus events enabled for terminals that support them
+set -g focus-events on
+
+# Aggressive resize
+# Disabled for iTerm 2 compatibility
+# See: https://github.com/tmux-plugins/tmux-sensible/issues/24
+setw -g aggressive-resize off
+
+# Enable activity monitoring
+setw -g monitor-activity on
+set -g visual-activity off
+
+# Set default shell
+set -g default-shell $SHELL
+
+# ============================================================================
+# Key Bindings
+# ============================================================================
+
+# Change prefix key to C-a (more comfortable than C-b)
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# Reload configuration file
+bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
+
+# Edit configuration file
+bind e new-window -n "tmux.conf" "sh -c '\${EDITOR:-vim} ~/.tmux.conf && tmux source ~/.tmux.conf && tmux display \"Config reloaded\"'"
+
+# ============================================================================
+# Window Management
+# ============================================================================
+
+# Create new window
+bind c new-window -c "#{pane_current_path}"
+
+# Split windows with more intuitive keys
+bind | split-window -h -c "#{pane_current_path}"
+bind - split-window -v -c "#{pane_current_path}"
+unbind '"'
+unbind %
+
+# Navigate windows
+bind -n M-h previous-window
+bind -n M-l next-window
+bind -n M-1 select-window -t 1
+bind -n M-2 select-window -t 2
+bind -n M-3 select-window -t 3
+bind -n M-4 select-window -t 4
+bind -n M-5 select-window -t 5
+bind -n M-6 select-window -t 6
+bind -n M-7 select-window -t 7
+bind -n M-8 select-window -t 8
+bind -n M-9 select-window -t 9
+
+# Move windows
+bind -n M-S-Left swap-window -t -1\; select-window -t -1
+bind -n M-S-Right swap-window -t +1\; select-window -t +1
+
+# Close window
+bind X confirm-before -p "kill-window #W? (y/n)" kill-window
+
+# ============================================================================
+# Pane Management
+# ============================================================================
+
+# Navigate panes with vim-like keys
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+# Smart pane switching with awareness of vim splits
+is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
+    | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|n?vim?x?)(diff)?$'"
+bind-key -n 'C-h' if-shell "$is_vim" 'send-keys C-h'  'select-pane -L'
+bind-key -n 'C-j' if-shell "$is_vim" 'send-keys C-j'  'select-pane -D'
+bind-key -n 'C-k' if-shell "$is_vim" 'send-keys C-k'  'select-pane -U'
+bind-key -n 'C-l' if-shell "$is_vim" 'send-keys C-l'  'select-pane -R'
+
+# Resize panes
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5
+
+# Resize panes with arrow keys
+bind -r Left resize-pane -L 1
+bind -r Down resize-pane -D 1
+bind -r Up resize-pane -U 1
+bind -r Right resize-pane -R 1
+
+# Zoom pane
+bind z resize-pane -Z
+
+# Break pane into new window
+bind ! break-pane -d
+
+# Join pane from another window
+bind @ command-prompt -p "create pane from:" "join-pane -s ':%%'"
+
+# Kill pane
+bind x confirm-before -p "kill-pane #P? (y/n)" kill-pane
+
+# ============================================================================
+# Copy Mode and Scrolling
+# ============================================================================
+
+# Use vim keybindings in copy mode
+setw -g mode-keys vi
+
+# Enter copy mode
+bind Enter copy-mode
+bind -n M-Up copy-mode
+
+# Copy mode key bindings
+bind -T copy-mode-vi v send-keys -X begin-selection
+bind -T copy-mode-vi C-v send-keys -X rectangle-toggle
+bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+bind -T copy-mode-vi Escape send-keys -X cancel
+bind -T copy-mode-vi H send-keys -X start-of-line
+bind -T copy-mode-vi L send-keys -X end-of-line
+
+# Copy to system clipboard (platform specific)
+if-shell "uname | grep -q Darwin" {
+    bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
+    bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
+} {
+    bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
+    bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
+}
+
+# Paste from clipboard
+bind p paste-buffer
+bind P choose-buffer
+
+# ============================================================================
+# Session Management
+# ============================================================================
+
+# Create new session
+bind C-c new-session
+
+# Find session
+bind C-f command-prompt -p find-session 'switch-client -t %%'
+
+# Session navigation
+bind -n M-s choose-tree -s
+bind -n M-w choose-tree -w
+
+# Quick session switching
+bind -r ( switch-client -p
+bind -r ) switch-client -n
+
+# ============================================================================
+# Status Bar Configuration
+# ============================================================================
+
+# Position status bar
+set -g status-position bottom
+
+# Update status bar every second
+set -g status-interval 1
+
+# Status bar colors
+set -g status-style bg=colour234,fg=colour137
+
+# Left side of status bar
+set -g status-left-length 20
+set -g status-left "#[fg=colour233,bg=colour244,bold] #S #[fg=colour244,bg=colour234,nobold]"
+
+# Right side of status bar
+set -g status-right-length 50
+set -g status-right "#[fg=colour240,bg=colour234]#[fg=colour250,bg=colour240] %H:%M #[fg=colour244,bg=colour240]#[fg=colour233,bg=colour244,bold] %d-%b "
+
+# Window status format
+setw -g window-status-current-style fg=colour81,bg=colour238,bold
+setw -g window-status-current-format " #I#[fg=colour250]:#[fg=colour255]#W#[fg=colour81]#F "
+
+setw -g window-status-style fg=colour244,bg=colour234,none
+setw -g window-status-format " #I#[fg=colour237]:#[fg=colour250]#W#[fg=colour244]#F "
+
+# Bell
+setw -g window-status-bell-style fg=colour255,bg=colour1,bold
+
+# Activity
+setw -g window-status-activity-style fg=colour81,bg=colour234,none
+
+# ============================================================================
+# Pane Borders
+# ============================================================================
+
+# Pane border colors
+set -g pane-border-style fg=colour238
+set -g pane-active-border-style fg=colour81
+
+# Pane border format
+set -g pane-border-format "#P: #{pane_current_command}"
+set -g pane-border-status off
+
+# ============================================================================
+# Message Colors
+# ============================================================================
+
+set -g message-style fg=colour81,bg=colour234,bold
+set -g message-command-style fg=colour81,bg=colour234,bold
+
+# ============================================================================
+# Plugin Management (TPM)
+# ============================================================================
+
+# List of plugins
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-sensible'
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @plugin 'tmux-plugins/tmux-continuum'
+set -g @plugin 'tmux-plugins/tmux-yank'
+set -g @plugin 'tmux-plugins/tmux-copycat'
+set -g @plugin 'tmux-plugins/tmux-open'
+set -g @plugin 'tmux-plugins/tmux-cpu'
+set -g @plugin 'tmux-plugins/tmux-battery'
+
+# Plugin configurations
+# tmux-resurrect
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-strategy-vim 'session'
+set -g @resurrect-strategy-nvim 'session'
+
+# tmux-continuum
+set -g @continuum-restore 'on'
+set -g @continuum-save-interval '15'
+
+# tmux-yank
+set -g @yank_selection_mouse 'clipboard'
+
+# tmux-cpu
+set -g @cpu_low_icon "="
+set -g @cpu_medium_icon "≡"
+set -g @cpu_high_icon "≣"
+
+# tmux-battery
+set -g @batt_icon_status_charged '🔋'
+set -g @batt_icon_status_charging '⚡'
+set -g @batt_icon_status_discharging '👎'
+
+# ============================================================================
+# Advanced Status Bar with Plugins
+# ============================================================================
+
+# Enhanced status bar with system information
+if-shell 'test -n "$SSH_CLIENT"' {
+    set -g status-right "#[fg=colour240,bg=colour234]#[fg=colour250,bg=colour240] SSH #[fg=colour244,bg=colour240]#[fg=colour233,bg=colour244,bold] #h "
+} {
+    set -g status-right "#{cpu_bg_color} CPU: #{cpu_icon} #{cpu_percentage} #[fg=colour240,bg=colour234]#[fg=colour250,bg=colour240] %H:%M #[fg=colour244,bg=colour240]#[fg=colour233,bg=colour244,bold] %d-%b "
+}
+
+# ============================================================================
+# Custom Commands and Functions
+# ============================================================================
+
+# Toggle status bar
+bind t set-option status
+
+# Toggle pane synchronization
+bind S set-window-option synchronize-panes
+
+# Clear history
+bind C-l send-keys C-l \; clear-history
+
+# Create popup window
+bind g display-popup -d '#{pane_current_path}' -w80% -h80%
+
+# Create floating window
+bind f if-shell -F '#{==:#{session_name},floating}' {
+    detach-client
+} {
+    popup -d '#{pane_current_path}' -xC -yC -w80% -h80% 'tmux new -A -s floating'
+}
+
+# ============================================================================
+# Development Shortcuts
+# ============================================================================
+
+# Quick development environment setup
+bind D new-window -n "dev" -c "#{pane_current_path}" \; \
+    split-window -v -p 30 -c "#{pane_current_path}" \; \
+    select-pane -t 0
+
+# Git shortcuts
+bind G new-window -n "git" "git status && exec $SHELL"
+
+# Log shortcuts
+bind M new-window -n "logs" "tail -f /var/log/system.log 2>/dev/null || tail -f /var/log/syslog 2>/dev/null || echo 'No system log found' && exec $SHELL"
+
+# SSH menu
+bind s split-window -v "tmux list-sessions | sed -E 's/:.*$//' | grep -v \"^$(tmux display-message -p '#S')\$\" | fzf --reverse | xargs tmux switch-client -t"
+
+# ============================================================================
+# Conditional Configurations
+# ============================================================================
+
+# Platform-specific settings
+if-shell "uname | grep -q Darwin" {
+    # macOS specific settings
+    set -g default-command "reattach-to-user-namespace -l $SHELL"
+    
+    # Use reattach-to-user-namespace for clipboard
+    bind -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "reattach-to-user-namespace pbcopy"
+}
+
+# Terminal-specific settings
+if-shell 'test "$TERM_PROGRAM" = "iTerm.app"' {
+    # iTerm2 specific settings
+    set -g terminal-overrides ',xterm*:Tc:sitm=\E[3m'
+}
+
+# ============================================================================
+# Performance Optimizations
+# ============================================================================
+
+# Faster command sequences
+set -s escape-time 0
+
+# Increase repeat time
+set -g repeat-time 1000
+
+# Reduce status update interval for better performance
+set -g status-interval 5
+
+# Limit scrollback to prevent memory issues
+set -g history-limit 50000
+
+# ============================================================================
+# Local Configuration
+# ============================================================================
+
+# Load local tmux configuration if it exists
+if-shell "test -f ~/.tmux.conf.local" "source-file ~/.tmux.conf.local"
+
+# Load profile-specific configuration
+if-shell "test -n '$DOTFILES_PROFILE' && test -f ~/.tmux.conf.$DOTFILES_PROFILE" "source-file ~/.tmux.conf.$DOTFILES_PROFILE"
+
+# ============================================================================
+# Plugin Manager Initialization
+# ============================================================================
+
+# Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
+# Auto-install TPM if not present
+if "test ! -d ~/.tmux/plugins/tpm" \
+   "run 'git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm && ~/.tmux/plugins/tpm/bin/install_plugins'"
+
+run '~/.tmux/plugins/tpm/tpm'
+
+# ============================================================================
+# Key Binding Summary
+# ============================================================================
+# Prefix: C-a
+# 
+# Session Management:
+#   C-c     new session
+#   C-f     find session
+#   (       previous session
+#   )       next session
+#   M-s     session tree
+#
+# Window Management:
+#   c       new window
+#   X       kill window
+#   M-h     previous window
+#   M-l     next window
+#   M-1-9   select window by number
+#
+# Pane Management:
+#   |       vertical split
+#   -       horizontal split
+#   h,j,k,l navigate panes
+#   H,J,K,L resize panes
+#   z       zoom pane
+#   x       kill pane
+#   !       break pane to window
+#   @       join pane
+#
+# Copy Mode:
+#   Enter   enter copy mode
+#   v       begin selection
+#   y       copy selection
+#   p       paste
+#
+# Misc:
+#   r       reload config
+#   e       edit config
+#   t       toggle status bar
+#   S       sync panes
+#   C-l     clear history

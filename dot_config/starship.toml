@@ -1,0 +1,241 @@
+# Starship Configuration
+# A modern, fast, and customizable prompt for any shell
+# Documentation: https://starship.rs/config/
+
+# Global settings
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$git_metrics\
+$package\
+$nodejs\
+$python\
+$rust\
+$golang\
+$java\
+$docker_context\
+$kubernetes\
+$aws\
+$gcloud\
+$terraform\
+$line_break\
+$character"""
+
+right_format = """
+$cmd_duration\
+$time"""
+
+# Wait 10 seconds for starship to check files under the current directory.
+scan_timeout = 30
+
+# Timeout for commands executed by starship (in milliseconds).
+command_timeout = 10000
+
+# Timeout for starship to scan files (in milliseconds).
+add_newline = true
+
+# Character module configuration
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold green)"
+
+# Directory module configuration
+[directory]
+style = "bold cyan"
+read_only = " 󰌾"
+truncation_length = 3
+truncate_to_repo = true
+fish_style_pwd_dir_length = 1
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+"Desktop" = " "
+"Projects" = "󰲋 "
+
+# Git configuration
+[git_branch]
+symbol = " "
+style = "bold purple"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "bold yellow"
+format = '([\[$all_status$ahead_behind\]]($style) )'
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+up_to_date = ""
+untracked = "?${count}"
+stashed = "$${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bright-black"
+
+[git_metrics]
+added_style = "bold blue"
+deleted_style = "bold red"
+only_nonzero_diffs = true
+format = '[+$added]($added_style)/[-$deleted]($deleted_style) '
+disabled = false
+
+# Language and tool modules
+[nodejs]
+symbol = " "
+style = "bold green"
+format = "[$symbol($version )]($style)"
+
+[python]
+symbol = " "
+style = "bold yellow"
+format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
+
+[rust]
+symbol = " "
+style = "bold red"
+format = "[$symbol($version )]($style)"
+
+[golang]
+symbol = " "
+style = "bold cyan"
+format = "[$symbol($version )]($style)"
+
+[java]
+symbol = " "
+style = "bold orange"
+format = "[$symbol($version )]($style)"
+
+[package]
+symbol = "󰏗 "
+style = "bold bright-blue"
+format = "[$symbol$version]($style) "
+
+# Docker and cloud tools
+[docker_context]
+symbol = " "
+style = "bold blue"
+format = "[$symbol$context]($style) "
+
+[kubernetes]
+symbol = "☸ "
+style = "bold blue"
+format = '[$symbol$context( \($namespace\))]($style) '
+disabled = false
+
+[aws]
+symbol = " "
+style = "bold orange"
+format = '[$symbol($profile )(\($region\) )]($style)'
+
+[gcloud]
+symbol = "󱇶 "
+style = "bold blue"
+format = '[$symbol$account(@$domain)(\($region\))]($style) '
+
+[terraform]
+symbol = "󱁢 "
+style = "bold purple"
+format = "[$symbol$workspace]($style) "
+
+# System information
+[username]
+style_user = "bold yellow"
+style_root = "bold red"
+format = "[$user]($style) "
+show_always = false
+
+[hostname]
+ssh_only = true
+style = "bold green"
+format = "[$hostname]($style) "
+
+[time]
+disabled = false
+style = "bold white"
+format = "[$time]($style)"
+time_format = "%T"
+
+[cmd_duration]
+min_time = 2_000
+style = "bold yellow"
+format = "[$duration]($style) "
+
+# Memory usage
+[memory_usage]
+disabled = false
+threshold = 75
+style = "bold dimmed red"
+symbol = " "
+format = "$symbol[$ram( | $swap)]($style) "
+
+# Battery
+[battery]
+full_symbol = " "
+charging_symbol = " "
+discharging_symbol = " "
+unknown_symbol = " "
+empty_symbol = " "
+
+[[battery.display]]
+threshold = 10
+style = "bold red"
+
+[[battery.display]]
+threshold = 30
+style = "bold yellow"
+
+# OS specific
+[os]
+style = "bold white"
+disabled = false
+
+[os.symbols]
+Alpine = " "
+Amazon = " "
+Android = " "
+Arch = " "
+CentOS = " "
+Debian = " "
+DragonFly = " "
+Emscripten = " "
+EndeavourOS = " "
+Fedora = " "
+FreeBSD = " "
+Garuda = "󰛓 "
+Gentoo = " "
+HardenedBSD = "󰞌 "
+Illumos = "󰈸 "
+Linux = " "
+Macos = " "
+Manjaro = " "
+Mariner = " "
+MidnightBSD = " "
+Mint = " "
+NetBSD = " "
+NixOS = " "
+OpenBSD = "󰈺 "
+openSUSE = " "
+OracleLinux = "󰌷 "
+Pop = " "
+Raspbian = " "
+Redhat = " "
+RedHatEnterprise = " "
+Redox = "󰀘 "
+Solus = "󰠳 "
+SUSE = " "
+Ubuntu = " "
+Unknown = " "
+Windows = "󰍲 "

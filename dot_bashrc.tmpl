@@ -1,0 +1,186 @@
+# ~/.bashrc - Bash configuration
+# Enhanced bash configuration for development environments
+# Managed by chezmoi - Profile: {{ .profile }}
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+# History configuration
+HISTCONTROL=ignoreboth:erasedups  # Ignore duplicates and lines starting with space
+HISTSIZE=10000                    # In-memory history size
+HISTFILESIZE=20000               # File history size
+HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "  # Add timestamps to history
+shopt -s histappend              # Append to history file, don't overwrite
+shopt -s cmdhist                 # Save multi-line commands as one history entry
+
+# Shell options
+shopt -s checkwinsize            # Check window size after each command
+shopt -s globstar 2>/dev/null    # Enable ** pattern (bash 4+)
+shopt -s nocaseglob              # Case-insensitive globbing
+shopt -s cdspell                 # Autocorrect typos in cd commands
+shopt -s dirspell 2>/dev/null    # Autocorrect directory names (bash 4+)
+
+# Set default editor
+export EDITOR="{{ .editor.default }}"
+export VISUAL="$EDITOR"
+
+# Locale settings
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+export LANG="${LANG:-en_US.UTF-8}"
+
+# Development environment variables
+export PAGER="${PAGER:-less}"
+export LESS="${LESS:--R -F -X}"
+export GREP_OPTIONS="--color=auto"
+export CLICOLOR=1
+
+# Source global definitions
+[[ -f /etc/bashrc ]] && source /etc/bashrc
+
+# Set up prompt
+setup_prompt() {
+    local reset='\[\033[0m\]'
+    local bold='\[\033[1m\]'
+    local red='\[\033[31m\]'
+    local green='\[\033[32m\]'
+    local yellow='\[\033[33m\]'
+    local blue='\[\033[34m\]'
+    local purple='\[\033[35m\]'
+    local cyan='\[\033[36m\]'
+
+    # Function to get git branch
+    git_branch() {
+        local branch
+        if branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
+            local status=""
+            if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
+                status="*"
+            fi
+            echo " (${branch}${status})"
+        fi
+    }
+
+    # Function to get exit status indicator
+    exit_status() {
+        if [[ $? -eq 0 ]]; then
+            echo "${green}✓${reset}"
+        else
+            echo "${red}✗${reset}"
+        fi
+    }
+
+{{- if eq .shell.prompt_style "simple" }}
+    # Simple prompt for minimal/server profiles
+    PS1="${bold}${blue}\u@\h${reset}:${bold}${cyan}\w${reset}\$ "
+{{- else }}
+    # Enhanced prompt with git info
+    PS1="\$(exit_status) ${bold}${green}\u${reset}@${bold}${yellow}\h${reset}:${bold}${cyan}\w${reset}${purple}\$(git_branch)${reset}\$ "
+{{- end }}
+}
+
+# Set up the prompt unless using starship
+{{- if eq .shell.prompt_style "starship" }}
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init bash)"
+else
+    setup_prompt
+fi
+{{- else }}
+setup_prompt
+{{- end }}
+
+# Source shared aliases and functions
+[[ -f ~/.config/shell/aliases.sh ]] && source ~/.config/shell/aliases.sh
+{{- if .shell.enable_functions }}
+[[ -f ~/.config/shell/functions.sh ]] && source ~/.config/shell/functions.sh
+{{- end }}
+
+# Completion settings
+if [[ -f /etc/bash_completion ]] && ! shopt -oq posix; then
+    source /etc/bash_completion
+fi
+
+# Homebrew bash completion (macOS)
+if [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]]; then
+    source "/opt/homebrew/etc/profile.d/bash_completion.sh"
+fi
+
+# Git completion
+if [[ -f ~/.git-completion.bash ]]; then
+    source ~/.git-completion.bash
+fi
+
+{{- if .features.work_specific }}
+# Load work-specific configuration
+[[ -f ~/.bashrc_work ]] && source ~/.bashrc_work
+{{- end }}
+
+# Load local customizations (not managed by chezmoi)
+[[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+
+{{- if .features.nodejs }}
+# Node.js version manager setup - Lazy loading for performance
+if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+    nvm() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
+        nvm "$@"
+    }
+
+    node() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
+        node "$@"
+    }
+
+    npm() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
+        npm "$@"
+    }
+
+    npx() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
+        npx "$@"
+    }
+fi
+{{- end }}
+
+{{- if .features.python }}
+# Python environment setup
+if command -v pyenv >/dev/null 2>&1; then
+    eval "$(pyenv init -)"
+fi
+{{- end }}
+
+{{- if .features.golang }}
+# Go environment setup
+if command -v go >/dev/null 2>&1; then
+    export GOPATH="${GOPATH:-$HOME/go}"
+    export PATH="$GOPATH/bin:$PATH"
+fi
+{{- end }}
+
+# Rust environment setup
+if [[ -f "$HOME/.cargo/env" ]]; then
+    source "$HOME/.cargo/env"
+fi
+
+{{- if ne .profile "server" }}
+# Welcome message (only for interactive sessions)
+if [[ -t 0 ]]; then
+    echo "Welcome to bash! Profile: {{ .profile }} ({{ .chezmoi.hostname }})"
+    if command -v fortune >/dev/null 2>&1; then
+        fortune 2>/dev/null || true
+    fi
+fi
+{{- end }}

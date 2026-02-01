@@ -1,0 +1,247 @@
+# ~/.zshrc - Zsh configuration
+# Enhanced zsh configuration for development environments
+# Managed by chezmoi - Profile: {{ .profile }}
+
+# Performance: Skip global compinit if we're going to do it ourselves
+skip_global_compinit=1
+
+# History configuration
+HISTSIZE=10000
+SAVEHIST=20000
+HISTFILE=~/.zsh_history
+setopt HIST_IGNORE_DUPS      # Don't record duplicates
+setopt HIST_IGNORE_ALL_DUPS  # Remove older duplicates
+setopt HIST_IGNORE_SPACE     # Don't record commands starting with space
+setopt HIST_REDUCE_BLANKS    # Remove superfluous blanks
+setopt HIST_SAVE_NO_DUPS     # Don't save duplicates
+setopt HIST_VERIFY           # Show command with history expansion before running
+setopt SHARE_HISTORY         # Share history between all sessions
+setopt EXTENDED_HISTORY      # Add timestamps to history
+setopt INC_APPEND_HISTORY    # Add commands to history immediately
+
+# Directory navigation
+setopt AUTO_CD               # Automatically cd into typed directory names
+setopt AUTO_PUSHD            # Make cd push old directory onto directory stack
+setopt PUSHD_IGNORE_DUPS     # Don't push duplicates onto stack
+setopt PUSHD_MINUS           # Use - instead of + for directory stack
+
+# Completion
+setopt AUTO_MENU             # Show completion menu on tab
+setopt ALWAYS_TO_END         # Move cursor to end of word after completion
+setopt COMPLETE_IN_WORD      # Complete from both ends of word
+setopt LIST_PACKED           # Use varying column widths for completions
+setopt AUTO_LIST             # Automatically list choices on ambiguous completion
+unsetopt MENU_COMPLETE       # Don't auto-select first completion entry
+
+# Globbing and expansion
+setopt EXTENDED_GLOB         # Use extended globbing syntax
+setopt GLOB_DOTS             # Include dotfiles in globbing
+setopt NO_CASE_GLOB          # Case insensitive globbing
+setopt NUMERIC_GLOB_SORT     # Sort numeric filenames numerically
+
+# Miscellaneous
+setopt NO_BEEP               # Don't beep
+setopt INTERACTIVE_COMMENTS  # Allow comments in interactive shell
+setopt NO_HUP                # Don't send HUP signal to background jobs on exit
+setopt AUTO_RESUME           # Attempt to resume existing job before creating new process
+
+# Environment variables
+export EDITOR="{{ .editor.default }}"
+export VISUAL="$EDITOR"
+export PAGER="${PAGER:-less}"
+export LESS="${LESS:--R -F -X}"
+export CLICOLOR=1
+export LSCOLORS="ExGxBxDxCxEgEdxbxgxcxd"
+
+# Locale settings
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+export LANG="${LANG:-en_US.UTF-8}"
+
+# Development environment variables
+export GREP_OPTIONS="--color=auto"
+
+# Initialize completion system
+autoload -Uz compinit
+# Check if dump exists and is less than 24 hours old
+if [[ -f ~/.zcompdump && ~/.zcompdump -nt /usr/share/zsh ]] && [[ ! ~/.zcompdump -ot /usr/share/zsh ]]; then
+    compinit -C  # Skip security check for faster startup
+else
+    compinit
+fi
+
+# Completion styling
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+zstyle ':completion:*:matches' group 'yes'
+zstyle ':completion:*:options' description 'yes'
+zstyle ':completion:*:options' auto-description '%d'
+zstyle ':completion:*:corrections' format ' %F{green}-- %d (errors: %e) --%f'
+zstyle ':completion:*:descriptions' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*:messages' format ' %F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format ' %F{red}-- no matches found --%f'
+zstyle ':completion:*:default' list-prompt '%S%M matches%s'
+zstyle ':completion:*' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' verbose yes
+
+# Kill completion
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)*=01;34=0=01'
+zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm -w -w"
+
+# Directory completion
+zstyle ':completion:*:cd:*' tag-order local-directories directory-stack path-directories
+
+# Set up prompt function
+setup_prompt() {
+    # Enable parameter expansion, command substitution and arithmetic expansion in prompts
+    setopt PROMPT_SUBST
+
+    # Function to get git information
+    git_info() {
+        local branch
+        if branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
+            local git_status=""
+            if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
+                git_status="*"
+            fi
+            echo " %F{magenta}(${branch}${git_status})%f"
+        fi
+    }
+
+    # Function to get exit status
+    exit_status() {
+        echo "%(?.%F{green}✓%f.%F{red}✗%f)"
+    }
+
+{{- if eq .shell.prompt_style "simple" }}
+    # Simple prompt for minimal/server profiles
+    PROMPT='%F{blue}%B%n@%m%b%f:%F{cyan}%B%~%b%f%# '
+{{- else }}
+    # Enhanced prompt with git info
+    PROMPT='$(exit_status) %F{green}%B%n%b%f@%F{yellow}%B%m%b%f:%F{cyan}%B%~%b%f$(git_info)%# '
+    RPROMPT='%F{gray}%*%f'
+{{- end }}
+}
+
+# Set up the prompt unless using starship
+{{- if eq .shell.prompt_style "starship" }}
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init zsh)"
+else
+    setup_prompt
+fi
+{{- else }}
+setup_prompt
+{{- end }}
+
+# Source shared aliases and functions
+[[ -f ~/.config/shell/aliases.sh ]] && source ~/.config/shell/aliases.sh
+{{- if .shell.enable_functions }}
+[[ -f ~/.config/shell/functions.sh ]] && source ~/.config/shell/functions.sh
+{{- end }}
+
+# Key bindings
+bindkey -e  # Use emacs-style key bindings
+
+# History search
+bindkey '^R' history-incremental-search-backward
+bindkey '^S' history-incremental-search-forward
+
+# Word movement
+bindkey '^[[1;5C' forward-word
+bindkey '^[[1;5D' backward-word
+
+# Delete key
+bindkey '^[[3~' delete-char
+
+# Home and End keys
+bindkey '^[[H' beginning-of-line
+bindkey '^[[F' end-of-line
+
+{{- if .features.work_specific }}
+# Load work-specific configuration
+[[ -f ~/.zshrc_work ]] && source ~/.zshrc_work
+{{- end }}
+
+# Load local customizations (not managed by chezmoi)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+{{- if .features.nodejs }}
+# Node.js version manager setup - Lazy loading for performance
+if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+    nvm() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        nvm "$@"
+    }
+
+    node() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        node "$@"
+    }
+
+    npm() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        npm "$@"
+    }
+
+    npx() {
+        unset -f nvm node npm npx
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        npx "$@"
+    }
+fi
+{{- end }}
+
+{{- if .features.python }}
+# Python environment setup
+if command -v pyenv >/dev/null 2>&1; then
+    eval "$(pyenv init -)"
+fi
+{{- end }}
+
+{{- if .features.golang }}
+# Go environment setup
+if command -v go >/dev/null 2>&1; then
+    export GOPATH="${GOPATH:-$HOME/go}"
+    export PATH="$GOPATH/bin:$PATH"
+fi
+{{- end }}
+
+# Rust environment setup
+if [[ -f "$HOME/.cargo/env" ]]; then
+    source "$HOME/.cargo/env"
+fi
+
+# Auto-suggestions (if available)
+if [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+elif [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+
+# Syntax highlighting (if available) - load last
+if [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+elif [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
+
+{{- if ne .profile "server" }}
+# Welcome message (only for interactive sessions)
+if [[ -o interactive ]]; then
+    echo "Welcome to zsh! Profile: {{ .profile }} ({{ .chezmoi.hostname }})"
+    if command -v fortune >/dev/null 2>&1; then
+        fortune 2>/dev/null || true
+    fi
+fi
+{{- end }}

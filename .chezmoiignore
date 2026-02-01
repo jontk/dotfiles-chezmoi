@@ -1,0 +1,61 @@
+# OS-specific ignores
+{{- if ne .chezmoi.os "darwin" }}
+# macOS-only files
+.config/karabiner/
+Library/
+{{- end }}
+
+{{- if ne .chezmoi.os "linux" }}
+# Linux-only files
+.config/systemd/
+{{- end }}
+
+# Profile-specific ignores
+{{- if not .features.kubernetes }}
+.kube/
+.config/k9s/
+{{- end }}
+
+{{- if not .features.docker }}
+.docker/
+.config/docker/
+{{- end }}
+
+{{- if not .features.nodejs }}
+.npmrc
+.config/nvm/
+{{- end }}
+
+{{- if not .features.python }}
+.config/pip/
+{{- end }}
+
+{{- if not .features.golang }}
+.config/go/
+{{- end }}
+
+{{- if not .features.starship }}
+.config/starship.toml
+{{- end }}
+
+{{- if not .features.tmux }}
+.tmux.conf
+{{- end }}
+
+{{- if and (not .features.neovim) (.features.editors_full) }}
+# Skip neovim config if not in experimental profile
+.config/nvim/
+{{- end }}
+
+{{- if eq .profile "minimal" }}
+# Minimal profile - ignore everything except shell and git
+.config/nvim/
+.config/starship.toml
+.tmux.conf
+.config/shell/functions.sh
+{{- end }}
+
+# Always ignore
+.git/
+README.md
+LICENSE

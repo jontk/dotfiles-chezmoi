@@ -1,0 +1,452 @@
+# Git Configuration File
+# Enhanced git configuration with aliases, settings, and best practices
+# Managed by chezmoi - Profile: {{ .profile }}
+
+[user]
+    # User information
+{{- if eq .profile "work" }}
+    name = {{ .git.workName | quote }}
+    email = {{ .git.workEmail | quote }}
+{{- if .git.workGpgKey }}
+    signingkey = {{ .git.workGpgKey | quote }}
+{{- end }}
+{{- else }}
+    name = {{ .git.name | quote }}
+    email = {{ .git.email | quote }}
+{{- end }}
+
+[core]
+    # Default editor for commit messages
+    editor = {{ .editor.default }}
+
+    # Handle line endings automatically
+    autocrlf = input
+
+    # Treat spaces before tabs and all kinds of trailing whitespace as an error
+    whitespace = space-before-tab,-indent-with-non-tab,trailing-space
+
+    # Make git rebase safer on macOS
+    trustctime = false
+
+    # Prevent showing files whose names contain non-ASCII symbols as unversioned
+    precomposeunicode = false
+
+    # Speed up commands involving untracked files
+    untrackedCache = true
+
+    # Use custom global gitignore file
+    excludesfile = ~/.gitignore_global
+
+    # Better diff algorithm
+    algorithm = histogram
+
+[init]
+    # Default branch name for new repositories
+    defaultBranch = main
+
+[push]
+    # Push only the current branch by default
+    default = simple
+
+    # Automatically set up remote tracking
+    autoSetupRemote = true
+
+    # Push tags along with commits when using git push --follow-tags
+    followTags = true
+
+[pull]
+    # Use rebase instead of merge when pulling
+    rebase = true
+
+    # Automatically stash before pull and pop after
+    autoStash = true
+
+[fetch]
+    # Automatically prune deleted remote branches
+    prune = true
+
+    # Fetch all tags
+    tags = true
+
+[rebase]
+    # Automatically stash uncommitted changes before rebasing
+    autoStash = true
+
+    # Use --autosquash by default
+    autoSquash = true
+
+    # Show a diffstat after a successful rebase
+    stat = true
+
+[merge]
+    # Include summaries of merged commits in merge commit messages
+    log = true
+
+    # Use diff3 conflict style to show common ancestor
+    conflictStyle = diff3
+
+    # Default merge tool
+    tool = vimdiff
+
+[diff]
+    # Detect copies as well as renames
+    renames = copies
+
+    # Use more readable diff algorithm
+    algorithm = histogram
+
+    # Show submodule changes in diffs
+    submodule = log
+
+    # Better word diff
+    wordRegex = [A-Za-z0-9_]+|[^[:space:]]
+
+    # Use mnemonic prefixes (index, work tree, commit, object) instead of a/b
+    mnemonicPrefix = true
+
+[status]
+    # Show untracked files in untracked directories
+    showUntrackedFiles = all
+
+    # Show branch and tracking info
+    branch = true
+
+    # Show stash count
+    showStash = true
+
+    # Show submodule summary
+    submoduleSummary = true
+
+[log]
+    # Show dates in ISO format
+    date = iso
+
+    # Follow file renames in log
+    follow = true
+
+    # Abbreviate commit hashes to 12 characters
+    abbrevCommit = true
+
+[blame]
+    # Show line numbers and commit timestamps
+    showRoot = true
+    date = short
+
+[color]
+    # Use colors in Git commands that are capable of colored output
+    ui = auto
+
+[color "status"]
+    added = green bold
+    changed = yellow bold
+    untracked = red bold
+    branch = cyan bold
+    header = white
+
+[color "diff"]
+    meta = cyan bold
+    frag = yellow bold
+    old = red bold
+    new = green bold
+    whitespace = red reverse
+
+[color "branch"]
+    current = green bold
+    local = normal
+    remote = red bold
+    upstream = cyan bold
+
+[help]
+    # Automatically correct and execute mistyped commands after 2 seconds
+    autocorrect = 20
+
+[rerere]
+    # Remember and reuse conflict resolutions
+    enabled = true
+
+    # Automatically stage resolved conflicts
+    autoupdate = true
+
+[submodule]
+    # Recursively update submodules
+    recurse = true
+
+[tag]
+    # Sort tags by version
+    sort = version:refname
+
+[versionsort]
+    # Sort version tags naturally
+    prereleaseSuffix = -pre
+    prereleaseSuffix = .pre
+    prereleaseSuffix = -beta
+    prereleaseSuffix = .beta
+    prereleaseSuffix = -rc
+    prereleaseSuffix = .rc
+
+# Aliases for common operations
+[alias]
+    # Basic shortcuts
+    st = status
+    co = checkout
+    br = branch
+    ci = commit
+    df = diff
+    dc = diff --cached
+    cp = cherry-pick
+    rb = rebase
+
+    # Add shortcuts
+    a = add
+    aa = add --all
+    ap = add --patch
+    au = add --update
+
+    # Commit shortcuts
+    c = commit
+    cm = commit -m
+    ca = commit --amend
+    can = commit --amend --no-edit
+    cane = commit --amend --no-edit
+
+    # Branch management
+    b = branch
+    ba = branch -a
+    bd = branch -d
+    bD = branch -D
+    bm = branch -m
+
+    # Checkout shortcuts
+    cb = checkout -b
+    ct = checkout --track
+
+    # Remote operations
+    f = fetch
+    fa = fetch --all
+    fo = fetch origin
+    pu = push
+    puo = push origin
+    puf = push --force-with-lease
+    puom = push origin main
+    puum = push --set-upstream origin main
+    pl = pull
+    plo = pull origin
+    plu = pull upstream
+
+    # Stash operations
+    s = stash
+    sp = stash pop
+    sl = stash list
+    ss = stash show
+    sd = stash drop
+    stash-all = stash push --include-untracked
+    ssp = stash show -p
+
+    # Log aliases
+    l = log --oneline
+    ll = log --oneline -10
+    lg = log --oneline --graph --decorate
+    lga = log --oneline --graph --decorate --all
+    lgs = log --oneline --graph --decorate --stat
+    lp = log --patch
+    ls = log --stat
+    ld = log --date=short --pretty=format:'%C(yellow)%h %C(blue)%ad %C(red)%an%C(green)%d %C(reset)%s'
+
+    # Detailed log formats
+    hist = log --pretty=format:'%C(yellow)%h%C(red)%d %C(reset)%s%C(blue) [%cn]' --decorate --graph
+    timeline = log --graph --branches --pretty=oneline --decorate
+    tree = log --graph --pretty=format:'%C(red)%h%C(reset) -%C(yellow)%d%C(reset) %s %C(green)(%cr) %C(bold blue)<%an>%C(reset)' --abbrev-commit --all
+
+    # Show information
+    last = log -1 HEAD --stat
+    today = log --since=midnight --author='{{ .git.name }}' --oneline
+    yesterday = log --since='1 day ago' --until=midnight --author='{{ .git.name }}' --oneline
+    thisweek = log --since='1 week ago' --author='{{ .git.name }}' --oneline
+
+    # Diff aliases
+    d = diff
+    ds = diff --staged
+    dw = diff --color-words
+    dt = difftool
+    dts = difftool --staged
+
+    # Reset shortcuts
+    unstage = reset HEAD --
+    uncommit = reset --soft HEAD~1
+    unstash = stash pop
+    hard = reset --hard
+
+    # Merge and rebase
+    m = merge
+    mf = merge --no-ff
+    mt = mergetool
+
+    # Rebase shortcuts
+    ri = rebase --interactive
+    rbi = rebase -i
+    rc = rebase --continue
+    rbc = rebase --continue
+    ra = rebase --abort
+    rba = rebase --abort
+    rs = rebase --skip
+    rbm = "!git rebase $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@' 2>/dev/null || echo 'main')"
+
+    # Remote management
+    rv = remote -v
+    ra = remote add
+    rr = remote remove
+    rn = remote rename
+
+    # Tag operations
+    t = tag
+    tl = tag -l
+    td = tag -d
+
+    # Worktree operations
+    wt = worktree
+    wta = worktree add
+    wtl = worktree list
+    wtr = worktree remove
+
+    # Submodule operations
+    sm = submodule
+    smu = submodule update
+    smi = submodule init
+    sms = submodule sync
+    subi = submodule init
+    subu = submodule update
+    subp = submodule foreach git pull origin master
+
+    # Clean operations
+    clean-branches = "!git branch --merged | grep -v '\\*\\|main\\|master\\|develop' | xargs -n 1 git branch -d"
+    prune-branches = "!git remote prune origin && git branch -vv | grep ': gone]' | grep -v '\\*' | awk '{ print $1; }' | xargs -r git branch -D"
+    cleanup-merged = "!git branch --merged | grep -v '\\*\\|main\\|master\\|develop' | xargs -r git branch -d"
+
+    # Search operations
+    search = grep -n
+    find = "!git ls-files | grep -i"
+
+    # Statistics and information
+    stats = shortlog -sn
+    contributors = shortlog -sn --all --no-merges
+    count = rev-list --count HEAD
+    size = count-objects -vH
+    sb = status -sb
+    info = remote show origin
+
+    # File operations
+    ignore = "!gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}; gi"
+    untrack = rm --cached
+
+    # Undo operations
+    undo = reset HEAD~1 --mixed
+    amend = commit -a --amend
+    ammend = commit --amend --no-edit
+    wipe = "!git add -A && git commit -qm 'WIPE SAVEPOINT' && git reset HEAD~1 --hard"
+    unwip = "!git log -1 --pretty=format:'%s' | grep -q 'WIP' && git reset HEAD~1 || echo 'Last commit is not WIP'"
+
+    # Productivity aliases
+    save = !git add -A && git commit -m 'SAVEPOINT'
+    wip = !git add -u && git commit -m "WIP"
+    snapshot = !git stash save "snapshot: $(date)" && git stash apply "stash@{0}"
+
+    # Modern git switch commands
+    sw = switch
+    swc = switch -c
+
+    # Checkout main branch (dynamically determined)
+    com = "!git checkout $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@' 2>/dev/null || echo 'main')"
+
+    # Flow aliases
+    feature = checkout -b feature/
+    hotfix = checkout -b hotfix/
+    release = checkout -b release/
+
+    # Advanced operations
+    conflicts = diff --name-only --diff-filter=U
+    resolve = "!git add $(git conflicts)"
+    fixup = commit --fixup
+    autosquash = rebase -i --autosquash
+
+    # Assume unchanged (for local config files)
+    assume = update-index --assume-unchanged
+    unassume = update-index --no-assume-unchanged
+    assumed = "!git ls-files -v | grep ^h | cut -c 3-"
+
+    # Backup current branch
+    backup = "!git branch backup/$(git branch --show-current)-$(date '+%Y%m%d%H%M%S')"
+
+    # Information commands
+    show-files = show --pretty='' --name-only
+    show-last = show --stat
+    filehistory = log --follow -p --
+    alias = "!git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /"
+
+    # Cherry-pick operations
+    cpc = cherry-pick --continue
+    cpa = cherry-pick --abort
+
+    # URL and GitHub operations
+    url = remote get-url origin
+    open = "!f() { url=$(git remote get-url origin 2>/dev/null || echo ''); if [[ $url =~ ^git@ ]]; then url=$(echo $url | sed 's/git@github.com:/https:\\/\\/github.com\\//g' | sed 's/.git$//'); fi; if [[ $(uname) == 'Darwin' ]]; then open $url; else xdg-open $url 2>/dev/null || echo $url; fi; }; f"
+    pr-url = "!f() { url=$(git remote get-url origin 2>/dev/null || echo ''); if [[ $url =~ ^git@ ]]; then url=$(echo $url | sed 's/git@github.com:/https:\\/\\/github.com\\//g' | sed 's/.git$//'); fi; echo $url/pull/new/$(git branch --show-current); }; f"
+
+{{- if .features.work_specific }}
+    # Work-specific aliases
+    pr = "!gh pr create"
+    prs = "!gh pr list"
+    issues = "!gh issue list"
+{{- end }}
+
+# URL shortcuts for common Git hosting services
+[url "git@github.com:"]
+    insteadOf = "gh:"
+    pushInsteadOf = "github:"
+    pushInsteadOf = "git://github.com/"
+
+[url "git://github.com/"]
+    insteadOf = "github:"
+
+[url "git@gist.github.com:"]
+    insteadOf = "gst:"
+    pushInsteadOf = "gist:"
+    pushInsteadOf = "git://gist.github.com/"
+
+[url "git://gist.github.com/"]
+    insteadOf = "gist:"
+
+# Delta diff tool configuration (if installed)
+[delta]
+    features = side-by-side line-numbers decorations
+    syntax-theme = Dracula
+    plus-style = syntax "#003800"
+    minus-style = syntax "#3f0001"
+
+[delta "decorations"]
+    commit-decoration-style = bold yellow box ul
+    file-style = bold yellow ul
+    file-decoration-style = none
+    hunk-header-decoration-style = cyan box ul
+
+[delta "line-numbers"]
+    line-numbers-left-style = cyan
+    line-numbers-right-style = cyan
+    line-numbers-minus-style = 124
+    line-numbers-plus-style = 28
+
+{{- if .features.work_specific }}
+# Conditional includes for work configuration
+[includeIf "gitdir:~/work/"]
+    path = ~/.gitconfig_work
+
+[includeIf "gitdir:~/projects/work/"]
+    path = ~/.gitconfig_work
+
+# Signing configuration
+{{- if .git.workGpgKey }}
+[commit]
+    gpgsign = true
+[gpg]
+    program = gpg
+{{- end }}
+{{- end }}
