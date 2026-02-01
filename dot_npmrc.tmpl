@@ -1,0 +1,50 @@
+# NPM Configuration
+# Security and performance optimizations for Node.js development
+# Profile: {{ .profile }}
+
+# Registry settings
+{{- if .features.work_specific }}
+# Work registry (set via environment or uncomment)
+# registry=${WORK_NPM_REGISTRY}
+{{- else }}
+registry=https://registry.npmjs.org/
+{{- end }}
+
+# Security settings
+audit-level=moderate
+fund=false
+
+# Performance settings
+progress=true
+loglevel=warn
+cache-max=86400000
+
+# Package installation preferences
+save-exact=false
+save-prefix=^
+package-lock=true
+
+# Global package location (prevents permission issues)
+prefix=${HOME}/.npm-global
+
+# Development settings
+{{- if .git.name }}
+init-author-name="{{ .git.name }}"
+{{- else }}
+init-author-name="Your Name"
+{{- end }}
+{{- if .git.email }}
+init-author-email="{{ .git.email }}"
+{{- else }}
+init-author-email="your.email@example.com"
+{{- end }}
+init-license="MIT"
+init-version="1.0.0"
+
+{{- if .features.work_specific }}
+
+# Enterprise/Work settings
+# Uncomment and configure for private registry
+# //your-private-registry.com/:_authToken=${NPM_TOKEN}
+strict-ssl=true
+{{- end }}

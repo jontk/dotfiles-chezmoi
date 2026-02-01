@@ -1,0 +1,52 @@
+# Pip Configuration
+# Security and performance optimizations for Python package management
+# Profile: {{ .profile }}
+
+[global]
+# Default index URL
+{{- if .features.work_specific }}
+# Work index (set via environment or uncomment)
+# index-url = ${WORK_PIP_INDEX}
+{{- else }}
+index-url = https://pypi.org/simple/
+{{- end }}
+
+# Security settings
+trusted-host =
+require-hashes = false
+
+# Performance settings
+cache-dir = ~/.cache/pip
+download-cache = ~/.cache/pip/downloads
+
+# Installation preferences
+user = false
+prefer-binary = true
+timeout = 15
+
+# Upgrade behavior
+upgrade-strategy = only-if-needed
+
+# Progress and logging
+progress-bar = on
+log-level = info
+
+[install]
+# Default install options
+# upgrade = true
+
+[list]
+# List command options
+format = columns
+
+[freeze]
+# Freeze command options
+# all = true
+
+{{- if .features.work_specific }}
+
+# Work/Enterprise settings
+# Uncomment and configure for private index
+# [global]
+# extra-index-url = https://pypi.org/simple/
+{{- end }}

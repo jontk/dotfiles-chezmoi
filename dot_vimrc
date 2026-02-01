@@ -1,0 +1,479 @@
+" .vimrc - Vim Configuration
+" Enhanced vim configuration for development environments
+
+" ============================================================================
+" Basic Settings
+" ============================================================================
+
+" Use Vim settings, rather than Vi settings
+set nocompatible
+
+" Enable filetype detection, plugins, and indentation
+filetype plugin indent on
+
+" Enable syntax highlighting
+syntax enable
+
+" Set encoding to UTF-8
+set encoding=utf-8
+set fileencoding=utf-8
+
+" Set number of spaces that a <Tab> in the file counts for
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set smarttab
+
+" Enable auto indentation
+set autoindent
+set smartindent
+set cindent
+
+" Show line numbers
+set number
+set relativenumber
+
+" Show the cursor position
+set ruler
+
+" Highlight the current line
+set cursorline
+
+" Show matching parentheses
+set showmatch
+
+" Enable incremental search
+set incsearch
+
+" Highlight search results
+set hlsearch
+
+" Ignore case when searching
+set ignorecase
+set smartcase
+
+" Enable backspace over everything in insert mode
+set backspace=indent,eol,start
+
+" Keep cursor visible when scrolling
+set scrolloff=5
+set sidescrolloff=5
+
+" Enable mouse support
+set mouse=a
+
+" Enable clipboard integration
+if has('clipboard')
+    set clipboard=unnamed,unnamedplus
+endif
+
+" Set command line height
+set cmdheight=2
+
+" Show incomplete commands
+set showcmd
+
+" Show current mode
+set showmode
+
+" Enable wildmenu for command completion
+set wildmenu
+set wildmode=longest:full,full
+
+" Ignore certain files in wildmenu
+set wildignore=*.o,*.obj,*.pyc,*.class,*.swp,*.tmp
+
+" Set updatetime for better user experience
+set updatetime=300
+
+" Don't give ins-completion-menu messages
+set shortmess+=c
+
+" Always show the signcolumn
+if has("patch-8.1.1564")
+    set signcolumn=number
+else
+    set signcolumn=yes
+endif
+
+" ============================================================================
+" Visual Settings
+" ============================================================================
+
+" Enable 256 colors if available
+if &t_Co >= 256 || has("gui_running")
+    set t_Co=256
+endif
+
+" Enable true color support if available
+if has('termguicolors')
+    set termguicolors
+endif
+
+" Set color scheme (fallback to default if not available)
+try
+    colorscheme gruvbox
+catch /^Vim\%((\a\+)\)\=:E185/
+    " Gruvbox not available, try other schemes
+    try
+        colorscheme desert
+    catch /^Vim\%((\a\+)\)\=:E185/
+        " Use default colorscheme
+        colorscheme default
+    endtry
+endtry
+
+" Set background (adjust based on preference)
+set background=dark
+
+" Show whitespace characters
+set list
+set listchars=tab:>·,trail:·,extends:>,precedes:<,nbsp:+
+
+" Highlight column 80
+if exists('+colorcolumn')
+    set colorcolumn=80
+endif
+
+" ============================================================================
+" File and Buffer Management
+" ============================================================================
+
+" Enable hidden buffers
+set hidden
+
+" Set backup directory
+set backup
+set backupdir=~/.vim/backup//
+
+" Set swap file directory
+set swapfile
+set directory=~/.vim/swap//
+
+" Set undo directory and persistent undo
+if has('persistent_undo')
+    set undofile
+    set undodir=~/.vim/undo//
+    set undolevels=1000
+    set undoreload=10000
+endif
+
+" Create directories if they don't exist
+if !isdirectory($HOME . "/.vim/backup")
+    call mkdir($HOME . "/.vim/backup", "p")
+endif
+if !isdirectory($HOME . "/.vim/swap")
+    call mkdir($HOME . "/.vim/swap", "p")
+endif
+if !isdirectory($HOME . "/.vim/undo")
+    call mkdir($HOME . "/.vim/undo", "p")
+endif
+
+" Auto-save when focus is lost
+autocmd FocusLost * :wa
+
+" Return to last edit position when opening files
+autocmd BufReadPost *
+    \ if line("'\"") > 0 && line("'\"") <= line("$") |
+    \   exe "normal! g`\"" |
+    \ endif
+
+" ============================================================================
+" Key Mappings
+" ============================================================================
+
+" Set leader key
+let mapleader = ","
+let g:mapleader = ","
+
+" Quick save
+nmap <leader>w :w!<cr>
+
+" Quick quit
+nmap <leader>q :q<cr>
+
+" Force quit
+nmap <leader>Q :q!<cr>
+
+" Save and quit
+nmap <leader>x :x<cr>
+
+" Clear search highlighting
+nmap <leader>/ :nohl<cr>
+
+" Fast editing of vimrc
+nmap <leader>e :e! ~/.vimrc<cr>
+
+" Source vimrc
+nmap <leader>s :source ~/.vimrc<cr>
+
+" Buffer navigation
+nmap <leader>bn :bnext<cr>
+nmap <leader>bp :bprevious<cr>
+nmap <leader>bd :bdelete<cr>
+
+" Window navigation
+nmap <C-h> <C-w>h
+nmap <C-j> <C-w>j
+nmap <C-k> <C-w>k
+nmap <C-l> <C-w>l
+
+" Window resizing
+nmap <leader>+ :resize +5<cr>
+nmap <leader>- :resize -5<cr>
+nmap <leader>> :vertical resize +5<cr>
+nmap <leader>< :vertical resize -5<cr>
+
+" Tab navigation
+nmap <leader>tn :tabnew<cr>
+nmap <leader>tc :tabclose<cr>
+nmap <leader>to :tabonly<cr>
+nmap <leader>tm :tabmove<cr>
+
+" Move lines up and down
+nmap <A-j> :m .+1<cr>==
+nmap <A-k> :m .-2<cr>==
+imap <A-j> <Esc>:m .+1<cr>==gi
+imap <A-k> <Esc>:m .-2<cr>==gi
+vmap <A-j> :m '>+1<cr>gv=gv
+vmap <A-k> :m '<-2<cr>gv=gv
+
+" Indentation in visual mode
+vmap < <gv
+vmap > >gv
+
+" Copy to end of line
+nmap Y y$
+
+" Center search results
+nmap n nzz
+nmap N Nzz
+
+" Easier macro playback
+nmap Q @q
+
+" ============================================================================
+" Plugin Management (Vim-Plug)
+" ============================================================================
+
+" Auto-install vim-plug if not present
+if empty(glob('~/.vim/autoload/plug.vim'))
+    silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+        \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
+
+" Plugin configuration
+call plug#begin('~/.vim/plugged')
+
+" Essential plugins
+Plug 'tpope/vim-sensible'           " Sensible defaults
+Plug 'tpope/vim-surround'           " Surround text objects
+Plug 'tpope/vim-repeat'             " Repeat plugin commands
+Plug 'tpope/vim-commentary'         " Easy commenting
+Plug 'tpope/vim-fugitive'           " Git integration
+
+" File management
+Plug 'preservim/nerdtree'           " File tree explorer
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'             " Fuzzy finder
+
+" Syntax and language support
+Plug 'sheerun/vim-polyglot'         " Language pack
+Plug 'dense-analysis/ale'           " Async linting
+
+" Visual enhancements
+Plug 'morhetz/gruvbox'              " Color scheme
+Plug 'vim-airline/vim-airline'      " Status line
+Plug 'vim-airline/vim-airline-themes'
+
+" Development tools
+Plug 'airblade/vim-gitgutter'       " Git diff in gutter
+Plug 'jiangmiao/auto-pairs'         " Auto-close brackets
+
+" Optional plugins (comment out if not needed)
+" Plug 'neoclide/coc.nvim', {'branch': 'release'} " LSP support
+" Plug 'preservim/tagbar'            " Tag browser
+" Plug 'easymotion/vim-easymotion'   " Easy motion
+
+call plug#end()
+
+" ============================================================================
+" Plugin Configuration
+" ============================================================================
+
+" NERDTree configuration
+nmap <leader>n :NERDTreeToggle<cr>
+nmap <leader>f :NERDTreeFind<cr>
+let NERDTreeShowHidden = 1
+let NERDTreeIgnore = ['\.pyc$', '\.swp$', '\.git$', 'node_modules', '\.DS_Store']
+let NERDTreeAutoDeleteBuffer = 1
+let NERDTreeMinimalUI = 1
+
+" Airline configuration
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#fnamemod = ':t'
+let g:airline_powerline_fonts = 1
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+
+" FZF configuration
+nmap <leader>p :Files<cr>
+nmap <leader>b :Buffers<cr>
+nmap <leader>g :Rg<cr>
+nmap <leader>t :Tags<cr>
+nmap <leader>h :History<cr>
+
+" GitGutter configuration
+let g:gitgutter_enabled = 1
+let g:gitgutter_map_keys = 0
+nmap <leader>gs :GitGutterSignsToggle<cr>
+nmap <leader>gh :GitGutterLineHighlightsToggle<cr>
+nmap ]h :GitGutterNextHunk<cr>
+nmap [h :GitGutterPrevHunk<cr>
+
+" ALE configuration
+let g:ale_enabled = 1
+let g:ale_sign_error = '✘'
+let g:ale_sign_warning = '⚠'
+let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
+nmap <silent> [e <Plug>(ale_previous_wrap)
+nmap <silent> ]e <Plug>(ale_next_wrap)
+
+" Auto-pairs configuration
+let g:AutoPairsShortcutToggle = '<leader>ap'
+
+" ============================================================================
+" Language-Specific Settings
+" ============================================================================
+
+" Python
+autocmd FileType python setlocal tabstop=4 shiftwidth=4 expandtab
+autocmd FileType python setlocal colorcolumn=79
+
+" JavaScript/TypeScript
+autocmd FileType javascript,typescript setlocal tabstop=2 shiftwidth=2 expandtab
+autocmd FileType json setlocal tabstop=2 shiftwidth=2 expandtab
+
+" HTML/CSS
+autocmd FileType html,css,scss setlocal tabstop=2 shiftwidth=2 expandtab
+
+" Go
+autocmd FileType go setlocal tabstop=4 shiftwidth=4 noexpandtab
+
+" YAML
+autocmd FileType yaml setlocal tabstop=2 shiftwidth=2 expandtab
+
+" Markdown
+autocmd FileType markdown setlocal wrap linebreak textwidth=79
+
+" Shell scripts
+autocmd FileType sh,bash,zsh setlocal tabstop=2 shiftwidth=2 expandtab
+
+" ============================================================================
+" Custom Functions
+" ============================================================================
+
+" Toggle line numbers
+function! ToggleNumber()
+    if &relativenumber
+        set norelativenumber
+        set number
+    elseif &number
+        set nonumber
+    else
+        set relativenumber
+    endif
+endfunction
+nmap <leader>ln :call ToggleNumber()<cr>
+
+" Strip trailing whitespace
+function! StripTrailingWhitespace()
+    let l:save = winsaveview()
+    keeppatterns %s/\s\+$//e
+    call winrestview(l:save)
+endfunction
+nmap <leader>ss :call StripTrailingWhitespace()<cr>
+
+" Toggle paste mode
+function! TogglePaste()
+    if &paste
+        set nopaste
+        echo "Paste mode OFF"
+    else
+        set paste
+        echo "Paste mode ON"
+    endif
+endfunction
+nmap <leader>pp :call TogglePaste()<cr>
+
+" Format JSON
+function! FormatJSON()
+    %!python -m json.tool
+endfunction
+command! FormatJSON call FormatJSON()
+
+" ============================================================================
+" Auto Commands
+" ============================================================================
+
+" Auto-reload vimrc when it's saved
+autocmd BufWritePost .vimrc source %
+
+" Remove trailing whitespace on save for certain filetypes
+autocmd BufWritePre *.py,*.js,*.ts,*.go,*.rs :call StripTrailingWhitespace()
+
+" Auto-create directories when saving files
+autocmd BufWritePre * if !isdirectory(expand("<afile>:p:h")) | call mkdir(expand("<afile>:p:h"), "p") | endif
+
+" Highlight TODO, FIXME, NOTE, etc.
+autocmd Syntax * syn match MyTodo /\v<(FIXME|NOTE|TODO|OPTIMIZE|XXX|HACK)/
+      \ containedin=.*Comment,vimCommentTitle
+
+" ============================================================================
+" Status Line (if airline is not available)
+" ============================================================================
+
+if !exists('g:loaded_airline')
+    set laststatus=2
+    set statusline=%f         " File name
+    set statusline+=%m        " Modified flag
+    set statusline+=%r        " Read-only flag
+    set statusline+=%h        " Help flag
+    set statusline+=%w        " Preview flag
+    set statusline+=%=        " Right align
+    set statusline+=%l,%c     " Line and column
+    set statusline+=\ %P      " Percentage through file
+endif
+
+" ============================================================================
+" Performance Optimizations
+" ============================================================================
+
+" Optimize for large files
+autocmd BufReadPre * if getfsize(expand("%")) > 10000000 | syntax off | endif
+
+" Lazy redraw
+set lazyredraw
+
+" Fast terminal connections
+set ttyfast
+
+" Reduce timeout
+set timeoutlen=1000
+set ttimeoutlen=0
+
+" ============================================================================
+" Local Configuration
+" ============================================================================
+
+" Load local vimrc if it exists
+if filereadable(expand("~/.vimrc.local"))
+    source ~/.vimrc.local
+endif
+
+" Load project-specific vimrc
+if filereadable(".vimrc.local")
+    source .vimrc.local
+endif

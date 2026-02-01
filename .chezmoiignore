@@ -14,6 +14,7 @@ Library/
 {{- if not .features.kubernetes }}
 .kube/
 .config/k9s/
+.config/kubernetes/
 {{- end }}
 
 {{- if not .features.docker }}
@@ -42,9 +43,15 @@ Library/
 .tmux.conf
 {{- end }}
 
-{{- if and (not .features.neovim) (.features.editors_full) }}
-# Skip neovim config if not in experimental profile
+{{- if not .features.editors_full }}
+# Skip editor configs if not in full editor profile
+.vimrc
 .config/nvim/
+{{- else }}
+{{- if not .features.neovim }}
+# Skip neovim if not experimental
+.config/nvim/
+{{- end }}
 {{- end }}
 
 {{- if eq .profile "minimal" }}
@@ -53,9 +60,16 @@ Library/
 .config/starship.toml
 .tmux.conf
 .config/shell/functions.sh
+.config/docker/
+.config/kubernetes/
+.npmrc
+.config/pip/
+.cargo/
+.aws/
 {{- end }}
 
 # Always ignore
 .git/
 README.md
+MIGRATION_GUIDE.md
 LICENSE

@@ -1,0 +1,56 @@
+# AWS CLI Configuration
+# Profile: {{ .profile }}
+
+[default]
+{{- if .features.work_specific }}
+# Work default region
+region = us-east-1
+{{- else }}
+# Personal default region
+region = us-east-1
+{{- end }}
+output = json
+cli_pager =
+cli_timestamp_format = iso8601
+max_attempts = 3
+retry_mode = adaptive
+
+# S3 settings
+s3 =
+    max_concurrent_requests = 20
+    max_queue_size = 10000
+    use_accelerate_endpoint = false
+    use_dualstack_endpoint = false
+
+# CloudFormation settings
+cloudformation =
+    stack_status_poll_interval = 1
+
+{{- if .features.work_specific }}
+
+# Work profile with MFA
+[profile work]
+region = us-east-1
+output = json
+# mfa_serial = arn:aws:iam::ACCOUNT_ID:mfa/username
+
+# Assumed role example
+[profile work-admin]
+source_profile = work
+# role_arn = arn:aws:iam::ACCOUNT_ID:role/AdminRole
+# mfa_serial = arn:aws:iam::ACCOUNT_ID:mfa/username
+{{- else }}
+
+# Personal profile
+[profile personal]
+region = us-east-1
+output = json
+{{- end }}
+
+# LocalStack for local development
+[profile localstack]
+region = us-east-1
+output = json
+endpoint_url = http://localhost:4566
+aws_access_key_id = test
+aws_secret_access_key = test

@@ -23,6 +23,9 @@ brew "ripgrep"
 brew "fd"
 brew "bat"
 brew "exa"
+brew "jq"
+brew "curl"
+brew "wget"
 
 {{- if .features.starship }}
 # Starship prompt
@@ -32,6 +35,15 @@ brew "starship"
 {{- if .features.tmux }}
 # Tmux
 brew "tmux"
+brew "reattach-to-user-namespace"
+{{- end }}
+
+{{- if .features.editors_full }}
+# Editors
+brew "vim"
+{{- if .features.neovim }}
+brew "neovim"
+{{- end }}
 {{- end }}
 
 {{- if .features.nodejs }}
@@ -48,12 +60,12 @@ brew "pyenv"
 {{- if .features.golang }}
 # Go
 brew "go"
+brew "golangci-lint"
 {{- end }}
 
 {{- if .features.docker }}
 # Docker
-brew "docker"
-brew "docker-compose"
+cask "docker"
 {{- end }}
 
 {{- if .features.kubernetes }}
@@ -61,7 +73,16 @@ brew "docker-compose"
 brew "kubectl"
 brew "k9s"
 brew "helm"
+brew "kubectx"
 {{- end }}
+
+# Development tools
+brew "tree"
+brew "htop"
+brew "watch"
+brew "tldr"
+brew "gh"
+
 EOF
 
 {{- else if eq .chezmoi.osRelease.id "fedora" }}
@@ -73,18 +94,31 @@ sudo dnf install -y \
     ripgrep \
     fd-find \
     bat \
+    jq \
+    curl \
+    wget \
+    tree \
+    htop \
 {{- if .features.starship }}
     starship \
 {{- end }}
 {{- if .features.tmux }}
     tmux \
 {{- end }}
+{{- if .features.editors_full }}
+    vim \
+{{- if .features.neovim }}
+    neovim \
+{{- end }}
+{{- end }}
 {{- if .features.nodejs }}
     nodejs \
+    npm \
 {{- end }}
 {{- if .features.python }}
     python3 \
     python3-pip \
+    python3-devel \
 {{- end }}
 {{- if .features.golang }}
     golang \
@@ -107,8 +141,20 @@ sudo apt update && sudo apt install -y \
     ripgrep \
     fd-find \
     bat \
+    jq \
+    curl \
+    wget \
+    tree \
+    htop \
+    build-essential \
 {{- if .features.tmux }}
     tmux \
+{{- end }}
+{{- if .features.editors_full }}
+    vim \
+{{- if .features.neovim }}
+    neovim \
+{{- end }}
 {{- end }}
 {{- if .features.nodejs }}
     nodejs \
@@ -117,6 +163,8 @@ sudo apt update && sudo apt install -y \
 {{- if .features.python }}
     python3 \
     python3-pip \
+    python3-venv \
+    python3-dev \
 {{- end }}
 {{- if .features.golang }}
     golang \
@@ -132,6 +180,13 @@ sudo apt update && sudo apt install -y \
 curl -sS https://starship.rs/install.sh | sh -s -- -y
 {{- end }}
 
+{{- if .features.kubernetes }}
+# Install kubectl (from official k8s repo)
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl
+{{- end }}
+
 {{- else if or (eq .chezmoi.osRelease.id "rhel") (eq .chezmoi.osRelease.id "rocky") (eq .chezmoi.osRelease.id "almalinux") }}
 # RHEL/Rocky/AlmaLinux
 echo "Installing DNF packages..."
@@ -139,12 +194,24 @@ sudo dnf install -y \
     git \
     fzf \
     ripgrep \
+    jq \
+    curl \
+    wget \
+    tree \
+    htop \
 {{- if .features.tmux }}
     tmux \
+{{- end }}
+{{- if .features.editors_full }}
+    vim \
+{{- if .features.neovim }}
+    neovim \
+{{- end }}
 {{- end }}
 {{- if .features.python }}
     python3 \
     python3-pip \
+    python3-devel \
 {{- end }}
     && true
 
@@ -153,6 +220,49 @@ sudo dnf install -y \
 curl -sS https://starship.rs/install.sh | sh -s -- -y
 {{- end }}
 
+{{- if .features.nodejs }}
+# Install Node.js from NodeSource
+curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+sudo dnf install -y nodejs
+{{- end }}
+
+{{- if .features.golang }}
+# Install Go from official source
+GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n1)
+curl -LO "https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "${GO_VERSION}.linux-amd64.tar.gz"
+rm "${GO_VERSION}.linux-amd64.tar.gz"
+{{- end }}
+
+{{- if .features.docker }}
+# Install Docker from official repo
+sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+{{- end }}
+
+{{- if .features.kubernetes }}
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl
+{{- end }}
+
+{{- end }}
+
+{{- if .features.editors_full }}
+# Install vim-plug for Vim
+if [[ ! -f ~/.vim/autoload/plug.vim ]]; then
+    curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+fi
 {{- end }}
 
 echo "Package installation complete!"
+echo ""
+echo "Note: Some tools may require a shell restart to be available in PATH"
+{{- if .features.docker }}
+echo "Note: Docker group membership requires logout/login to take effect"
+{{- end }}

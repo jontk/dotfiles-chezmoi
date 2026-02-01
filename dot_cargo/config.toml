@@ -1,0 +1,106 @@
+# Cargo configuration
+# Location: ~/.cargo/config.toml
+
+[build]
+# Number of parallel jobs, defaults to # of CPUs
+jobs = "auto"
+
+# Enable incremental compilation
+incremental = true
+
+[term]
+# Enable colored output
+color = "auto"
+
+# Progress bar settings
+progress.when = "auto"
+progress.width = 80
+
+[net]
+# Retry failed downloads
+retry = 3
+
+# Use git CLI for fetching
+git-fetch-with-cli = false
+
+[profile.dev]
+# Development profile optimizations
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+
+[profile.release]
+# Release profile optimizations
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.bench]
+# Benchmark profile
+opt-level = 3
+lto = true
+codegen-units = 1
+
+# Custom profiles
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+
+[profile.min-size]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+
+# Registries
+[registries]
+# crates-io uses sparse protocol by default
+crates-io = { index = "sparse+https://index.crates.io/" }
+
+# Aliases for common commands
+[alias]
+# Build aliases
+b = "build"
+br = "build --release"
+c = "check"
+cr = "check --release"
+
+# Test aliases
+t = "test"
+tr = "test --release"
+ta = "test --all"
+tn = "test --no-run"
+
+# Run aliases
+r = "run"
+rr = "run --release"
+re = "run --example"
+
+# Clean aliases
+cl = "clean"
+
+# Doc aliases
+d = "doc"
+do = "doc --open"
+
+# Format and lint
+f = "fmt"
+l = "clippy -- -D warnings"
+
+# Cargo extensions (if installed)
+w = "watch"
+u = "update"
+o = "outdated"
+a = "add"
+rm = "rm"
+up = "upgrade"
+
+# Custom commands
+rebuild = "clean && build"
+full-check = "check && test && clippy -- -D warnings"
+release-build = "build --release --all-features"
+
+[env]
+# Environment variables for all cargo invocations
+RUST_BACKTRACE = "1"
