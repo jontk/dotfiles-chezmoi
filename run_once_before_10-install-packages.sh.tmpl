@@ -41,7 +41,7 @@ brew "reattach-to-user-namespace"
 {{- if .features.editors_full }}
 # Editors
 brew "vim"
-{{- if .features.neovim }}
+{{- if .features.beta_features }}
 brew "neovim"
 {{- end }}
 {{- end }}
@@ -107,7 +107,7 @@ sudo dnf install -y \
 {{- end }}
 {{- if .features.editors_full }}
     vim \
-{{- if .features.neovim }}
+{{- if .features.beta_features }}
     neovim \
 {{- end }}
 {{- end }}
@@ -152,7 +152,7 @@ sudo apt update && sudo apt install -y \
 {{- end }}
 {{- if .features.editors_full }}
     vim \
-{{- if .features.neovim }}
+{{- if .features.beta_features }}
     neovim \
 {{- end }}
 {{- end }}
@@ -204,7 +204,7 @@ sudo dnf install -y \
 {{- end }}
 {{- if .features.editors_full }}
     vim \
-{{- if .features.neovim }}
+{{- if .features.beta_features }}
     neovim \
 {{- end }}
 {{- end }}

@@ -28,7 +28,7 @@ PATH="$CARGO_HOME/bin:$PATH"
 PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
 # Editor configuration
-{{- if .features.neovim }}
+{{- if .features.beta_features }}
 export EDITOR="${EDITOR:-nvim}"
 {{- else }}
 export EDITOR="${EDITOR:-{{ .editor.default }}}"
