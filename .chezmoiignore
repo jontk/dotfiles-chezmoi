@@ -48,8 +48,8 @@ Library/
 .vimrc
 .config/nvim/
 {{- else }}
-{{- if not .features.neovim }}
-# Skip neovim if not experimental
+{{- if not .features.beta_features }}
+# Skip neovim if not experimental profile
 .config/nvim/
 {{- end }}
 {{- end }}
