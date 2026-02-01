@@ -37,6 +37,9 @@ export CLICOLOR=1
 # Source global definitions
 [[ -f /etc/bashrc ]] && source /etc/bashrc
 
+# Source environment variables
+[[ -f ~/.config/shell/environment.sh ]] && source ~/.config/shell/environment.sh
+
 # Set up prompt
 setup_prompt() {
     local reset='\[\033[0m\]'

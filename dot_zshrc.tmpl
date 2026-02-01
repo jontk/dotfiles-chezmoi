@@ -57,6 +57,9 @@ export LSCOLORS="ExGxBxDxCxEgEdxbxgxcxd"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 export LANG="${LANG:-en_US.UTF-8}"
 
+# Source environment variables
+[[ -f ~/.config/shell/environment.sh ]] && source ~/.config/shell/environment.sh
+
 # Development environment variables
 export GREP_OPTIONS="--color=auto"
 
@@ -237,6 +240,9 @@ elif [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; th
 fi
 
 {{- if ne .profile "server" }}
+# Load ZSH plugins
+[[ -f ~/.config/shell/plugins.zsh ]] && source ~/.config/shell/plugins.zsh
+
 # Welcome message (only for interactive sessions)
 if [[ -o interactive ]]; then
     echo "Welcome to zsh! Profile: {{ .profile }} ({{ .chezmoi.hostname }})"

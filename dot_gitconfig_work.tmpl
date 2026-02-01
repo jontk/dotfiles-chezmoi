@@ -1,0 +1,89 @@
+# Work-specific Git Configuration
+# This file is included when working in work directories
+# Profile: {{ .profile }}
+
+{{- if .features.work_specific }}
+[user]
+    # Work email and name
+    name = {{ .git.workName | quote }}
+    email = {{ .git.workEmail | quote }}
+{{- if .git.workGpgKey }}
+    # Work GPG signing key
+    signingkey = {{ .git.workGpgKey | quote }}
+{{- end }}
+
+[commit]
+{{- if .git.workGpgKey }}
+    # Enable GPG signing for work commits
+    gpgsign = true
+{{- end }}
+
+[push]
+    # More conservative push settings for work
+    default = simple
+    followTags = false
+
+[pull]
+    # Use merge instead of rebase for work repos (safer)
+    rebase = false
+
+[core]
+    # Work-specific hooks directory
+    hooksPath = .githooks
+
+# Work-specific aliases
+[alias]
+    # Work-specific workflow aliases
+    work-start = "!git checkout main && git pull && git checkout -b"
+    work-finish = "!git push --set-upstream origin $(git branch --show-current)"
+    work-sync = "!git checkout main && git pull && git checkout - && git rebase main"
+
+    # Code review helpers
+    review-request = "!gh pr create --draft"
+    review-ready = "!gh pr ready"
+
+    # Release management
+    release-branch = "!git checkout -b release/$(date '+%Y.%m.%d')"
+    hotfix-branch = "!git checkout -b hotfix/$(date '+%Y.%m.%d')"
+
+# Work-specific URL shortcuts
+# [url "git@work-github.com:"]
+#     insteadOf = "work:"
+
+{{- if .git.workGpgKey }}
+# Signing configuration for work
+[gpg]
+    program = gpg
+{{- end }}
+
+# Work-specific diff and merge tools
+[merge]
+    tool = vscode
+
+[mergetool "vscode"]
+    cmd = code --wait $MERGED
+
+[diff]
+    tool = vscode
+
+[difftool "vscode"]
+    cmd = code --wait --diff $LOCAL $REMOTE
+
+# Work-specific hooks and security
+[receive]
+    advertisePushOptions = true
+
+[transfer]
+    fsckobjects = true
+
+[fetch]
+    fsckobjects = true
+
+# Stricter settings for work repositories
+[rebase]
+    missingCommitsCheck = error
+
+[push]
+    # Require explicit push configuration
+    default = nothing
+{{- end }}

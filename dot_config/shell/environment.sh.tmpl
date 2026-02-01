@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# Shell environment configuration
+# Portable environment variables for development tools
+# Profile: {{ .profile }}
+
+# XDG Base Directory Specification
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# Create XDG directories if they don't exist
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+
+# Path configuration - add common development paths
+typeset -gU path 2>/dev/null || true  # Remove duplicates (zsh)
+PATH="$HOME/.local/bin:$PATH"
+
+# Development language paths
+export GOPATH="${GOPATH:-$XDG_DATA_HOME/go}"
+export CARGO_HOME="${CARGO_HOME:-$XDG_DATA_HOME/cargo}"
+export RUSTUP_HOME="${RUSTUP_HOME:-$XDG_DATA_HOME/rustup}"
+export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-global}"
+
+# Add development tool paths to PATH
+PATH="$GOPATH/bin:$PATH"
+PATH="$CARGO_HOME/bin:$PATH"
+PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+
+# Editor configuration
+{{- if .features.neovim }}
+export EDITOR="${EDITOR:-nvim}"
+{{- else }}
+export EDITOR="${EDITOR:-{{ .editor.default }}}"
+{{- end }}
+if ! command -v "$EDITOR" >/dev/null 2>&1; then
+    export EDITOR="${EDITOR:-vim}"
+fi
+export VISUAL="${VISUAL:-$EDITOR}"
+export SUDO_EDITOR="$EDITOR"
+
+# Pager configuration
+export PAGER="${PAGER:-less}"
+export LESS="${LESS:--R -F -X}"
+export LESSHISTFILE="${LESSHISTFILE:-$XDG_STATE_HOME/less/history}"
+
+# Use bat as manpager if available
+if command -v bat >/dev/null 2>&1; then
+    export MANPAGER="${MANPAGER:-sh -c 'col -bx | bat -l man -p'}"
+else
+    export MANPAGER="${MANPAGER:-less}"
+fi
+export MANWIDTH="${MANWIDTH:-80}"
+
+# Language and locale settings
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+export LC_CTYPE="${LC_CTYPE:-en_US.UTF-8}"
+
+# Shell history settings
+export HISTSIZE="${HISTSIZE:-100000}"
+export HISTFILESIZE="${HISTFILESIZE:-100000}"
+export SAVEHIST="${SAVEHIST:-$HISTSIZE}"
+
+# Set shell-specific history files
+case "$0" in
+    *zsh*|zsh)
+        export HISTFILE="${HISTFILE:-$XDG_STATE_HOME/zsh/history}"
+        mkdir -p "$(dirname "$HISTFILE")" 2>/dev/null
+        ;;
+    *bash*|bash)
+        export HISTFILE="${HISTFILE:-$XDG_STATE_HOME/bash/history}"
+        mkdir -p "$(dirname "$HISTFILE")" 2>/dev/null
+        ;;
+esac
+
+# FZF configuration
+if command -v fzf >/dev/null 2>&1; then
+    if command -v fd >/dev/null 2>&1; then
+        export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
+        export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git"
+    else
+        export FZF_DEFAULT_COMMAND="find . -type f -not -path '*/\.*' | head -10000"
+        export FZF_ALT_C_COMMAND="find . -type d -not -path '*/\.*' | head -10000"
+    fi
+
+    export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:-\
+--height 40% \
+--layout=reverse \
+--border \
+--inline-info \
+--preview-window=right:50%:hidden \
+--bind='ctrl-/:toggle-preview' \
+--bind='ctrl-u:preview-page-up' \
+--bind='ctrl-d:preview-page-down'}"
+
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+fi
+
+# Tool-specific configurations
+export RIPGREP_CONFIG_PATH="${RIPGREP_CONFIG_PATH:-$XDG_CONFIG_HOME/ripgrep/config}"
+export GPG_TTY=$(tty 2>/dev/null || echo "not-a-tty")
+
+{{- if .features.docker }}
+# Docker configuration
+export DOCKER_CONFIG="${DOCKER_CONFIG:-$XDG_CONFIG_HOME/docker}"
+export DOCKER_BUILDKIT="${DOCKER_BUILDKIT:-1}"
+export COMPOSE_DOCKER_CLI_BUILD="${COMPOSE_DOCKER_CLI_BUILD:-1}"
+{{- end }}
+
+{{- if .features.kubernetes }}
+# Kubernetes configuration
+export KUBECONFIG="${KUBECONFIG:-$XDG_CONFIG_HOME/kube/config}"
+export KUBE_EDITOR="${KUBE_EDITOR:-$EDITOR}"
+{{- end }}
+
+{{- if .features.nodejs }}
+# Node.js configuration
+export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$XDG_STATE_HOME/node/repl_history}"
+export NPM_CONFIG_USERCONFIG="${NPM_CONFIG_USERCONFIG:-$XDG_CONFIG_HOME/npm/npmrc}"
+export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-$XDG_CACHE_HOME/npm}"
+{{- end }}
+
+{{- if .features.python }}
+# Python configuration
+export PYTHONSTARTUP="${PYTHONSTARTUP:-$XDG_CONFIG_HOME/python/startup.py}"
+export PYTHON_HISTORY="${PYTHON_HISTORY:-$XDG_STATE_HOME/python/history}"
+export PYTHONUSERBASE="${PYTHONUSERBASE:-$XDG_DATA_HOME/python}"
+export WORKON_HOME="${WORKON_HOME:-$XDG_DATA_HOME/virtualenvs}"
+export PIPENV_VENV_IN_PROJECT="${PIPENV_VENV_IN_PROJECT:-1}"
+{{- end }}
+
+# Platform-specific configurations
+case "$(uname -s)" in
+    Darwin)
+        # macOS specific
+        export HOMEBREW_NO_ANALYTICS=1
+        export HOMEBREW_NO_AUTO_UPDATE=1
+        export HOMEBREW_NO_INSTALL_CLEANUP=1
+        export HOMEBREW_BUNDLE_FILE="${HOMEBREW_BUNDLE_FILE:-$XDG_CONFIG_HOME/homebrew/Brewfile}"
+
+        # Use GNU utilities if available
+        if [[ -d /opt/homebrew/opt/coreutils/libexec/gnubin ]]; then
+            PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
+        fi
+
+        # Add Homebrew to PATH
+        if [[ -d /opt/homebrew/bin ]]; then
+            PATH="/opt/homebrew/bin:$PATH"
+        elif [[ -d /usr/local/bin ]]; then
+            PATH="/usr/local/bin:$PATH"
+        fi
+        ;;
+    Linux)
+        # Linux specific
+        export SYSTEMD_EDITOR="$EDITOR"
+        ;;
+esac
+
+# Clean up PATH - remove duplicates
+PATH=$(echo "$PATH" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':' | sed 's/:$//')
+export PATH
