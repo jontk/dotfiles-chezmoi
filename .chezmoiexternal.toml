@@ -1,0 +1,51 @@
+# External Dependencies Configuration
+# Managed by chezmoi
+# These files are fetched and managed by chezmoi automatically
+
+# Vim Plugin Manager
+[".vim/autoload/plug.vim"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+    refreshPeriod = "168h"  # Refresh weekly
+    [".vim/autoload/plug.vim".filter]
+        command = "sh"
+        args = ["-c", "grep -q 'Plug.*vim-plug' ~/.vimrc 2>/dev/null || echo 'skip'"]
+
+# Neovim Plugin Manager
+[".local/share/nvim/site/autoload/plug.vim"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+    refreshPeriod = "168h"
+    [".local/share/nvim/site/autoload/plug.vim".filter]
+        command = "sh"
+        args = ["-c", "test -f ~/.config/nvim/init.lua || test -f ~/.config/nvim/init.vim"]
+
+# Tmux Plugin Manager
+[".config/tmux/plugins/tpm"]
+    type = "git-repo"
+    url = "https://github.com/tmux-plugins/tpm.git"
+    refreshPeriod = "168h"
+    [".config/tmux/plugins/tpm".filter]
+        command = "sh"
+        args = ["-c", "test -f ~/.tmux.conf || test -f ~/.config/tmux/tmux.conf"]
+
+# Bash Git Prompt (optional optimization)
+[".local/share/git-prompt.sh"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh"
+    refreshPeriod = "720h"  # Refresh monthly
+    executable = true
+
+# Bash Completion
+[".local/share/git-completion.bash"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.bash"
+    refreshPeriod = "720h"
+    executable = false
+
+# Zsh Completions
+[".local/share/zsh/site-functions/_git"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.zsh"
+    refreshPeriod = "720h"
+    executable = false

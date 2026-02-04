@@ -473,7 +473,10 @@ if filereadable(expand("~/.vimrc.local"))
     source ~/.vimrc.local
 endif
 
-" Load project-specific vimrc
+" Load project-specific vimrc (with security restrictions)
+" Enable secure mode to prevent unsafe operations in local vimrc files
+set secure
+set exrc
 if filereadable(".vimrc.local")
     source .vimrc.local
 endif

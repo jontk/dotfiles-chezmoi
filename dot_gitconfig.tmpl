@@ -40,6 +40,13 @@
     # Better diff algorithm
     algorithm = histogram
 
+    # Enable fsmonitor for performance on large repos (requires fsmonitor daemon)
+    # fsmonitor = true
+
+[index]
+    # Use version 4 index format for better performance
+    version = 4
+
 [init]
     # Default branch name for new repositories
     defaultBranch = main
@@ -69,6 +76,24 @@
 
     # Fetch all tags
     tags = true
+
+    # Validate objects during fetch for security
+    fsckObjects = true
+
+    # Automatically write commit graph for performance
+    writeCommitGraph = true
+
+[transfer]
+    # Validate objects during push/pull for security
+    fsckObjects = true
+
+[receive]
+    # Validate objects when receiving for security
+    fsckObjects = true
+
+[feature]
+    # Enable optimizations for repositories with many files
+    manyFiles = true
 
 [rebase]
     # Automatically stash uncommitted changes before rebasing

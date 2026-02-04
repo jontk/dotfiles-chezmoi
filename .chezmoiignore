@@ -73,3 +73,21 @@ Library/
 README.md
 MIGRATION_GUIDE.md
 LICENSE
+
+# Documentation and analysis files
+CRITICAL_IMPROVEMENTS_ANALYSIS.md
+EXPERT_RECOMMENDATIONS.md
+IMPLEMENTATION_SUMMARY.md
+TESTING_GUIDE.md
+TODO.md
+
+# Temporary and OS-specific files
+.DS_Store
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# External dependencies config (managed by chezmoi)
+.chezmoiexternal.toml

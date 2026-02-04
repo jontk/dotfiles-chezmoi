@@ -1,0 +1,152 @@
+# Ripgrep Configuration
+# Managed by chezmoi
+# Default options for ripgrep (rg)
+# See: https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
+
+# Search Settings
+# ---------------
+
+# Smart case: case-insensitive if pattern is all lowercase, case-sensitive otherwise
+--smart-case
+
+# Follow symbolic links
+--follow
+
+# Search hidden files and directories
+--hidden
+
+# Maximum number of columns to display per line
+--max-columns=150
+
+# Show a preview of long lines
+--max-columns-preview
+
+# Sort results by file path (can be slow on large searches)
+# --sort=path
+
+# Globbing Patterns
+# -----------------
+
+# Ignore patterns (similar to .gitignore)
+# Always ignore .git directories
+--glob=!.git/*
+
+# Ignore common build and dependency directories
+--glob=!node_modules/*
+--glob=!.npm/*
+--glob=!bower_components/*
+--glob=!vendor/*
+--glob=!target/*
+--glob=!build/*
+--glob=!dist/*
+--glob=!.next/*
+--glob=!.nuxt/*
+--glob=!.cache/*
+--glob=!__pycache__/*
+--glob=!*.pyc
+--glob=!.venv/*
+--glob=!venv/*
+--glob=!.pytest_cache/*
+--glob=!.mypy_cache/*
+--glob=!.tox/*
+
+# Ignore common IDE and editor files
+--glob=!.idea/*
+--glob=!.vscode/*
+--glob=!.vs/*
+--glob=!*.swp
+--glob=!*.swo
+--glob=!*~
+--glob=!.DS_Store
+
+# Ignore log files
+--glob=!*.log
+
+# Ignore lock files
+--glob=!package-lock.json
+--glob=!yarn.lock
+--glob=!Cargo.lock
+--glob=!poetry.lock
+--glob=!Pipfile.lock
+
+# Ignore minified files
+--glob=!*.min.js
+--glob=!*.min.css
+--glob=!*.bundle.js
+
+# Ignore compiled files
+--glob=!*.o
+--glob=!*.so
+--glob=!*.dll
+--glob=!*.exe
+--glob=!*.class
+--glob=!*.jar
+
+# Ignore media files
+--glob=!*.png
+--glob=!*.jpg
+--glob=!*.jpeg
+--glob=!*.gif
+--glob=!*.svg
+--glob=!*.ico
+--glob=!*.mp4
+--glob=!*.mp3
+--glob=!*.pdf
+
+# Display Options
+# ---------------
+
+# Show line numbers
+--line-number
+
+# Show column numbers
+--column
+
+# Use colors (auto-detect terminal support)
+--colors=match:fg:red
+--colors=match:style:bold
+--colors=path:fg:green
+--colors=path:style:bold
+--colors=line:fg:yellow
+
+# Context lines (uncomment to show lines before/after match)
+# --context=2
+# --before-context=2
+# --after-context=2
+
+# Performance
+# -----------
+
+# Number of threads (0 = auto-detect)
+--threads=0
+
+# Memory map files when possible (faster for large files)
+--mmap
+
+# Encoding
+# --------
+
+# Automatically detect encoding (UTF-8, UTF-16, etc.)
+--auto-hybrid-regex
+
+# Search Options
+# --------------
+
+# Enable multiline search
+# --multiline
+
+# Enable case-sensitive search (overrides --smart-case)
+# --case-sensitive
+
+# Only show files that would be searched (useful for testing globs)
+# --files
+
+# Type Definitions
+# ----------------
+# Define custom file types for use with --type flag
+
+# Example: rg --type=config 'pattern'
+--type-add=config:*.{conf,config,cfg,ini,toml,yaml,yml,json}
+--type-add=web:*.{html,css,js,jsx,ts,tsx,vue,svelte}
+--type-add=docs:*.{md,txt,rst,adoc}
+--type-add=scripts:*.{sh,bash,zsh,fish,py,rb,pl}

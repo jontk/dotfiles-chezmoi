@@ -1,0 +1,28 @@
+# ~/.bash_profile - Bash login shell configuration
+# Managed by chezmoi - Profile: {{ .profile }}
+#
+# This file is read by bash login shells
+# It should source .profile for POSIX compatibility, then .bashrc for bash-specific features
+
+# Source the POSIX-compatible .profile
+if [ -f "$HOME/.profile" ]; then
+    source "$HOME/.profile"
+fi
+
+# Source .bashrc for interactive shells
+# Note: .profile already sources .bashrc for bash, but we include it here for clarity
+if [ -f "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc"
+fi
+
+{{- if .features.work_specific }}
+# Load work-specific login configuration
+if [ -f "$HOME/.bash_profile_work" ]; then
+    source "$HOME/.bash_profile_work"
+fi
+{{- end }}
+
+# Local customizations (not managed by chezmoi)
+if [ -f "$HOME/.bash_profile.local" ]; then
+    source "$HOME/.bash_profile.local"
+fi

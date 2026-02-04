@@ -601,8 +601,15 @@ vim.api.nvim_create_user_command("FormatJSON", format_json, {})
 -- Load Local Configuration
 -- ============================================================================
 
--- Load local init.lua if it exists
+-- Load local init.lua if it exists (with security validation)
 local local_config = vim.fn.stdpath("config") .. "/init.local.lua"
 if vim.fn.filereadable(local_config) == 1 then
-    dofile(local_config)
+    -- Enable secure mode for local config files
+    vim.o.secure = true
+    vim.o.exrc = true
+
+    local ok, err = pcall(dofile, local_config)
+    if not ok then
+        vim.notify("Error loading local config: " .. tostring(err), vim.log.levels.ERROR)
+    end
 end

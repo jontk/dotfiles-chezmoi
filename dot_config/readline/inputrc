@@ -1,0 +1,165 @@
+# Readline Configuration
+# Managed by chezmoi
+# Controls line editing behavior for bash, python REPL, and other readline-enabled programs
+
+# General Settings
+# ----------------
+
+# Use Vi mode (comment this out to use Emacs mode)
+# set editing-mode vi
+
+# Use Emacs mode (default)
+set editing-mode emacs
+
+# Disable bell on error
+set bell-style none
+
+# Case-insensitive completion
+set completion-ignore-case on
+
+# Treat hyphens and underscores as equivalent for completion
+set completion-map-case on
+
+# Show all completions immediately (no double-tab needed)
+set show-all-if-ambiguous on
+
+# Show all completions even if there are unmodified characters
+set show-all-if-unmodified on
+
+# Append slash to directory completions
+set mark-directories on
+set mark-symlinked-directories on
+
+# Show file type indicators (like ls -F)
+set visible-stats on
+
+# Color files by type in completions
+set colored-stats on
+
+# Color completion prefix differently
+set colored-completion-prefix on
+
+# Display completions in columns
+set print-completions-horizontally off
+
+# Page completions when there are many
+set page-completions on
+
+# Ask before showing lots of completions
+set completion-query-items 200
+
+# Single tab shows all completions if multiple matches
+set show-all-if-ambiguous on
+
+# Ignore hidden files in completion (unless pattern starts with .)
+set match-hidden-files off
+
+# History Settings
+# ----------------
+
+# Navigate history with arrow keys based on prefix
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+
+# Ctrl+P/N for history (Emacs style)
+"\C-p": history-search-backward
+"\C-n": history-search-forward
+
+# Page up/down through history
+"\e[5~": history-search-backward
+"\e[6~": history-search-forward
+
+# Keybindings
+# -----------
+
+# Alt+Left/Right to move between words
+"\e[1;3D": backward-word
+"\e[1;3C": forward-word
+
+# Ctrl+Left/Right to move between words (alternative)
+"\e[1;5D": backward-word
+"\e[1;5C": forward-word
+
+# Ctrl+Backspace to delete word backward
+"\C-h": backward-kill-word
+
+# Ctrl+Delete to delete word forward
+"\e[3;5~": kill-word
+
+# Home and End keys
+"\e[H": beginning-of-line
+"\e[F": end-of-line
+"\e[1~": beginning-of-line
+"\e[4~": end-of-line
+
+# Delete key
+"\e[3~": delete-char
+
+# Ctrl+K to kill to end of line
+"\C-k": kill-line
+
+# Ctrl+U to kill to beginning of line
+"\C-u": unix-line-discard
+
+# Ctrl+W to delete word backward
+"\C-w": unix-word-rubout
+
+# Alt+D to delete word forward
+"\ed": kill-word
+
+# Ctrl+Y to yank (paste)
+"\C-y": yank
+
+# Tab completion (cycle through matches)
+TAB: complete
+
+# Display possible completions using colors
+set colored-stats on
+
+# Completions Settings
+# --------------------
+
+# Make completion more aggressive
+set skip-completed-text on
+
+# Allow UTF-8 input and output
+set input-meta on
+set output-meta on
+set convert-meta off
+
+# Readline 8.0+ specific features
+$if version >= 8.0
+    # Enable bracketed paste mode for safer pasting
+    set enable-bracketed-paste on
+
+    # Enable active region highlighting
+    set enable-active-region on
+$endif
+
+# Application-specific settings
+# -----------------------------
+
+# Python REPL
+$if Python
+    set editing-mode emacs
+    TAB: complete
+$endif
+
+# MySQL client
+$if mysql
+    set editing-mode emacs
+$endif
+
+# Vi mode specific bindings (uncomment if using vi mode)
+# $if mode=vi
+#     # Vi insert mode mappings
+#     set keymap vi-insert
+#     "jj": vi-movement-mode
+#     "\C-p": history-search-backward
+#     "\C-n": history-search-forward
+#
+#     # Vi command mode mappings
+#     set keymap vi-command
+#     "k": history-search-backward
+#     "j": history-search-forward
+# $endif

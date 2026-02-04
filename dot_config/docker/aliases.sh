@@ -78,8 +78,15 @@ dvclean() {
 
 # Clean everything
 dcleanall() {
-    echo "Cleaning all Docker resources..."
-    docker system prune -a --volumes -f
+    echo "WARNING: This will delete ALL unused Docker resources including volumes!"
+    read -p "Are you sure? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cleaning all Docker resources..."
+        docker system prune -a --volumes -f
+    else
+        echo "Cancelled."
+    fi
 }
 
 # Get container IP address
@@ -182,8 +189,15 @@ dstopall() {
 drmall() {
     local containers=$(docker ps -aq)
     if [[ -n "$containers" ]]; then
-        echo "Removing all containers..."
-        docker rm -f $containers
+        echo "WARNING: This will force remove ALL containers (including running ones)!"
+        read -p "Are you sure? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "Removing all containers..."
+            docker rm -f $containers
+        else
+            echo "Cancelled."
+        fi
     else
         echo "No containers to remove"
     fi
@@ -193,8 +207,15 @@ drmall() {
 drmiall() {
     local images=$(docker images -q)
     if [[ -n "$images" ]]; then
-        echo "Removing all images..."
-        docker rmi -f $images
+        echo "WARNING: This will force remove ALL Docker images!"
+        read -p "Are you sure? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "Removing all images..."
+            docker rmi -f $images
+        else
+            echo "Cancelled."
+        fi
     else
         echo "No images to remove"
     fi
