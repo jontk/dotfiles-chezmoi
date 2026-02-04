@@ -186,11 +186,11 @@ load_plugins() {
     # Load completions first
     load_plugin "zsh-completions" 2>/dev/null
     
-    # Load syntax highlighting (should be loaded before autosuggestions)
-    load_plugin "zsh-syntax-highlighting" 2>/dev/null
-    
     # Load autosuggestions
     load_plugin "zsh-autosuggestions" 2>/dev/null
+
+    # Load syntax highlighting last
+    load_plugin "zsh-syntax-highlighting" 2>/dev/null
     
     # Load any other plugins
     for plugin_dir in "$ZSH_PLUGINS_DIR"/*; do
@@ -212,7 +212,7 @@ load_plugins() {
 # Initialize plugins if in interactive shell
 if [[ -o interactive ]]; then
     # Auto-install essential plugins if git is available and we're not in a restricted environment
-    if command -v git >/dev/null 2>&1 && [[ -w "$ZSH_PLUGINS_DIR" ]]; then
+    if [[ "${ZSH_AUTO_INSTALL_PLUGINS:-}" == "1" ]] && command -v git >/dev/null 2>&1 && [[ -w "$ZSH_PLUGINS_DIR" ]]; then
         # Only auto-install if we don't have any plugins yet
         if [[ ! -d "$ZSH_PLUGINS_DIR/zsh-syntax-highlighting" ]]; then
             auto_install_plugins

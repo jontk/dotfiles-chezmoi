@@ -16,20 +16,36 @@ if [[ -n "$DEBUG" ]]; then
     set -x
 fi
 
+# Collect staged files (null-delimited for safety)
+staged_files=()
+while IFS= read -r -d '' file; do
+    staged_files+=("$file")
+done < <(git diff --cached --name-only -z)
+
+staged_added_files=()
+while IFS= read -r -d '' file; do
+    staged_added_files+=("$file")
+done < <(git diff --cached --name-only --diff-filter=A -z)
+
+staged_files_acm=()
+while IFS= read -r -d '' file; do
+    staged_files_acm+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACM -z)
+
 echo -e "${BLUE}Running pre-commit checks...${NC}"
 
 # Check for merge conflicts
 echo "Checking for merge conflict markers..."
-if git diff --cached --name-only | xargs grep -l -E '^(<<<<<<<|=======|>>>>>>>)' 2>/dev/null; then
+if [[ ${#staged_files[@]} -gt 0 ]] && grep -l -E '^(<<<<<<<|=======|>>>>>>>)' -- "${staged_files[@]}" 2>/dev/null; then
     echo -e "${RED}Error: Merge conflict markers found in staged files:${NC}"
-    git diff --cached --name-only | xargs grep -n -E '^(<<<<<<<|=======|>>>>>>>)' 2>/dev/null || true
+    grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- "${staged_files[@]}" 2>/dev/null || true
     exit 1
 fi
 
 # Check for large files (>10MB)
 echo "Checking for large files..."
 large_files_found=false
-while read -r file; do
+for file in "${staged_files[@]}"; do
     if [[ -f "$file" ]]; then
         # Detect stat command flavor by testing flags
         if stat -f%z "$file" >/dev/null 2>&1; then
@@ -50,7 +66,7 @@ while read -r file; do
             large_files_found=true
         fi
     fi
-done < <(git diff --cached --name-only)
+done
 
 if [[ "$large_files_found" == "true" ]]; then
     echo "Consider using Git LFS for large files"
@@ -65,16 +81,16 @@ binary_files_found=false
 BINARY_EXTENSIONS="exe|dll|so|dylib|a|o|bin|dat|class|pyc|pyo|obj|lib|app"
 
 # Check for files with binary extensions
-while read -r file; do
+for file in "${staged_added_files[@]}"; do
     if [[ -f "$file" ]] && echo "$file" | grep -qE "\.(${BINARY_EXTENSIONS})$"; then
         echo -e "${RED}Error: Binary file detected: $file${NC}"
         echo "  Extension: .$(echo "$file" | sed 's/.*\.//')"
         binary_files_found=true
     fi
-done < <(git diff --cached --name-only --diff-filter=A)
+done
 
 # Check for executable binaries without extensions (compiled programs)
-while read -r file; do
+for file in "${staged_added_files[@]}"; do
     if [[ -f "$file" ]]; then
         # Use file command to detect binary executables
         if file "$file" | grep -qE "(ELF|PE32|Mach-O|executable|compiled)"; then
@@ -87,7 +103,7 @@ while read -r file; do
             fi
         fi
     fi
-done < <(git diff --cached --name-only --diff-filter=A)
+done
 
 if [[ "$binary_files_found" == "true" ]]; then
     echo -e "${RED}Binary files should not be committed to git.${NC}"
@@ -100,127 +116,128 @@ fi
 
 # Check for sensitive data patterns
 echo "Checking for sensitive data patterns..."
-sensitive_patterns=(
-    "PRIVATE KEY"
-    "private_key"
-    "aws_access_key_id"
-    "aws_secret_access_key"
-    "api_key"
-    "apikey"
-    "access_token"
-    "auth_token"
-    "credentials"
-    "password"
-    "passwd"
-    "secret_key"
-    "SECRET_KEY"
-    "token"
-    "TOKEN"
-)
 
-sensitive_found=false
-for pattern in "${sensitive_patterns[@]}"; do
-    if git diff --cached --name-only | xargs grep -i -l "$pattern" 2>/dev/null; then
-        echo -e "${YELLOW}Warning: Possible sensitive data found (pattern: $pattern)${NC}"
-        git diff --cached --name-only | xargs grep -i -n "$pattern" 2>/dev/null || true
-        sensitive_found=true
-    fi
-done
+# Combined regex pattern for better performance (single grep call)
+# Includes: API keys, tokens, passwords, private keys, cloud credentials, etc.
+SENSITIVE_PATTERN='(PRIVATE[_ ]KEY|private[_-]key|BEGIN[_ ](RSA|DSA|EC|OPENSSH|PGP)[_ ]PRIVATE[_ ]KEY|aws[_-]access[_-]key[_-]id|aws[_-]secret[_-]access[_-]key|AKIA[0-9A-Z]{16}|api[_-]?key|access[_-]?token|auth[_-]?token|bearer[_ ]|credentials?|password|passwd|secret[_-]?key|SECRET[_-]KEY|github[_-]?token|ghp_[a-zA-Z0-9]{36}|gho_[a-zA-Z0-9]{36}|ghu_[a-zA-Z0-9]{36}|ghs_[a-zA-Z0-9]{36}|ghr_[a-zA-Z0-9]{36}|xox[baprs]-[0-9a-zA-Z-]+|eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*)'
 
-if [[ "$sensitive_found" == "true" ]]; then
-    echo -e "${YELLOW}Please review and ensure no secrets are being committed${NC}"
-    read -p "Continue anyway? (y/N) " -n 1 -r response
-    echo
-    if [[ ! "$response" =~ ^[Yy]$ ]]; then
-        exit 1
+# Use single grep call for all patterns (much faster than loop)
+if [[ ${#staged_files[@]} -gt 0 ]]; then
+    if grep -E -n "$SENSITIVE_PATTERN" -- "${staged_files[@]}" 2>/dev/null; then
+        echo -e "${YELLOW}Warning: Possible sensitive data found matching known secret patterns${NC}"
+        echo -e "${YELLOW}Patterns matched include: API keys, tokens, passwords, private keys, AWS credentials, etc.${NC}"
+        echo -e "${YELLOW}Please review and ensure no secrets are being committed${NC}"
+        read -p "Continue anyway? (y/N) " -n 1 -r response
+        echo
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
 fi
 
 # Check and auto-fix trailing whitespace
 echo "Checking for trailing whitespace..."
-if ! git diff --cached --check >/dev/null 2>&1; then
-    echo -e "${YELLOW}Auto-fixing trailing whitespace...${NC}"
-    
-    # Get files with trailing whitespace
-    files_with_whitespace=$(git diff --cached --check 2>&1 | sed 's/:.*$//' | sort -u)
-    
-    # Fix trailing whitespace in each file
-    for file in $files_with_whitespace; do
-        if [[ -f "$file" ]]; then
-            echo "  Fixing: $file"
-            # Detect sed flavor by testing behavior, not OS
-            if sed --version >/dev/null 2>&1; then
-                # GNU sed (supports --version)
-                sed -i 's/[[:space:]]*$//' "$file"
-            else
-                # BSD sed (macOS default, doesn't support --version)
-                sed -i '' 's/[[:space:]]*$//' "$file"
-            fi
-            # Re-stage the fixed file
-            git add "$file"
+files_with_whitespace=()
+for file in "${staged_files[@]}"; do
+    if [[ -f "$file" ]]; then
+        if ! git diff --cached --check -- "$file" >/dev/null 2>&1; then
+            files_with_whitespace+=("$file")
         fi
+    fi
+done
+
+if [[ ${#files_with_whitespace[@]} -gt 0 ]]; then
+    echo -e "${YELLOW}Auto-fixing trailing whitespace...${NC}"
+
+    for file in "${files_with_whitespace[@]}"; do
+        echo "  Fixing: $file"
+        # Detect sed flavor by testing behavior, not OS
+        if sed --version >/dev/null 2>&1; then
+            # GNU sed (supports --version)
+            sed -i 's/[[:space:]]*$//' "$file"
+        else
+            # BSD sed (macOS default, doesn't support --version)
+            sed -i '' 's/[[:space:]]*$//' "$file"
+        fi
+        # Re-stage the fixed file
+        git add "$file"
     done
-    
+
     echo -e "${GREEN}✓ Trailing whitespace fixed and re-staged${NC}"
 fi
 
 # Language-specific formatting checks
-staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+python_files=()
+js_files=()
+go_files=()
+rust_files=()
+shell_files=()
+yaml_files=()
+json_files=()
+markdown_files=()
+
+for file in "${staged_files_acm[@]}"; do
+    case "$file" in
+        *.py) python_files+=("$file") ;;
+        *.js|*.jsx|*.ts|*.tsx) js_files+=("$file") ;;
+        *.go) go_files+=("$file") ;;
+        *.rs) rust_files+=("$file") ;;
+        *.sh|*.bash|*.zsh) shell_files+=("$file") ;;
+        *.yml|*.yaml) yaml_files+=("$file") ;;
+        *.json) json_files+=("$file") ;;
+        *.md|*.markdown) markdown_files+=("$file") ;;
+    esac
+done
 
 # Python formatting check
-python_files=$(echo "$staged_files" | grep -E '\.py$' || true)
-if [[ -n "$python_files" ]]; then
+if [[ ${#python_files[@]} -gt 0 ]]; then
     echo "Checking Python files..."
-    
+
     # Check with black if available
     if command -v black >/dev/null 2>&1; then
-        if ! echo "$python_files" | xargs black --check --quiet 2>/dev/null; then
+        if ! black --check --quiet "${python_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: Python files not formatted with black${NC}"
-            echo "Run: echo '$python_files' | xargs black"
+            echo "Run: black --check --quiet <files>"
         fi
     fi
-    
+
     # Check with flake8 if available
     if command -v flake8 >/dev/null 2>&1; then
-        if ! echo "$python_files" | xargs flake8 --max-line-length=88 2>/dev/null; then
+        if ! flake8 --max-line-length=88 "${python_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: Python linting issues found${NC}"
         fi
     fi
 fi
 
 # JavaScript/TypeScript formatting check
-js_files=$(echo "$staged_files" | grep -E '\.(js|jsx|ts|tsx)$' || true)
-if [[ -n "$js_files" ]]; then
+if [[ ${#js_files[@]} -gt 0 ]]; then
     echo "Checking JavaScript/TypeScript files..."
-    
+
     if command -v prettier >/dev/null 2>&1; then
-        if ! echo "$js_files" | xargs prettier --check 2>/dev/null; then
+        if ! prettier --check "${js_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: JS/TS files not formatted with prettier${NC}"
-            echo "Run: echo '$js_files' | xargs prettier --write"
+            echo "Run: prettier --write <files>"
         fi
     fi
-    
+
     if command -v eslint >/dev/null 2>&1; then
-        if ! echo "$js_files" | xargs eslint 2>/dev/null; then
+        if ! eslint "${js_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: ESLint issues found${NC}"
         fi
     fi
 fi
 
 # Go formatting check
-go_files=$(echo "$staged_files" | grep -E '\.go$' || true)
-if [[ -n "$go_files" ]]; then
+if [[ ${#go_files[@]} -gt 0 ]]; then
     echo "Checking Go files..."
-    
+
     if command -v gofmt >/dev/null 2>&1; then
-        if ! echo "$go_files" | xargs gofmt -l | grep -q .; then
-            : # Files are formatted
-        else
+        if gofmt -l "${go_files[@]}" | grep -q .; then
             echo -e "${YELLOW}Warning: Go files not formatted${NC}"
-            echo "Run: echo '$go_files' | xargs gofmt -w"
+            echo "Run: gofmt -w <files>"
         fi
     fi
-    
+
     if command -v go >/dev/null 2>&1; then
         if ! go vet ./... 2>/dev/null; then
             echo -e "${YELLOW}Warning: Go vet issues found${NC}"
@@ -229,17 +246,16 @@ if [[ -n "$go_files" ]]; then
 fi
 
 # Rust formatting check
-rust_files=$(echo "$staged_files" | grep -E '\.rs$' || true)
-if [[ -n "$rust_files" ]]; then
+if [[ ${#rust_files[@]} -gt 0 ]]; then
     echo "Checking Rust files..."
-    
+
     if command -v rustfmt >/dev/null 2>&1; then
-        if ! echo "$rust_files" | xargs rustfmt --check 2>/dev/null; then
+        if ! rustfmt --check "${rust_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: Rust files not formatted${NC}"
-            echo "Run: echo '$rust_files' | xargs rustfmt"
+            echo "Run: rustfmt <files>"
         fi
     fi
-    
+
     if command -v cargo >/dev/null 2>&1; then
         if ! cargo clippy --quiet 2>/dev/null; then
             echo -e "${YELLOW}Warning: Cargo clippy issues found${NC}"
@@ -248,34 +264,31 @@ if [[ -n "$rust_files" ]]; then
 fi
 
 # Shell script checks
-shell_files=$(echo "$staged_files" | grep -E '\.(sh|bash|zsh)$' || true)
-if [[ -n "$shell_files" ]]; then
+if [[ ${#shell_files[@]} -gt 0 ]]; then
     echo "Checking shell scripts..."
-    
+
     if command -v shellcheck >/dev/null 2>&1; then
-        if ! echo "$shell_files" | xargs shellcheck 2>/dev/null; then
+        if ! shellcheck "${shell_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: Shellcheck issues found${NC}"
         fi
     fi
 fi
 
 # YAML/JSON formatting checks
-yaml_files=$(echo "$staged_files" | grep -E '\.(yml|yaml)$' || true)
-if [[ -n "$yaml_files" ]]; then
+if [[ ${#yaml_files[@]} -gt 0 ]]; then
     echo "Checking YAML files..."
-    
+
     if command -v yamllint >/dev/null 2>&1; then
-        if ! echo "$yaml_files" | xargs yamllint -d relaxed 2>/dev/null; then
+        if ! yamllint -d relaxed "${yaml_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: YAML formatting issues found${NC}"
         fi
     fi
 fi
 
-json_files=$(echo "$staged_files" | grep -E '\.json$' || true)
-if [[ -n "$json_files" ]]; then
+if [[ ${#json_files[@]} -gt 0 ]]; then
     echo "Checking JSON files..."
-    
-    for file in $json_files; do
+
+    for file in "${json_files[@]}"; do
         if ! python3 -m json.tool "$file" >/dev/null 2>&1; then
             echo -e "${YELLOW}Warning: Invalid JSON in $file${NC}"
         fi
@@ -283,12 +296,11 @@ if [[ -n "$json_files" ]]; then
 fi
 
 # Markdown checks
-markdown_files=$(echo "$staged_files" | grep -E '\.(md|markdown)$' || true)
-if [[ -n "$markdown_files" ]]; then
+if [[ ${#markdown_files[@]} -gt 0 ]]; then
     echo "Checking Markdown files..."
-    
+
     if command -v markdownlint >/dev/null 2>&1; then
-        if ! echo "$markdown_files" | xargs markdownlint 2>/dev/null; then
+        if ! markdownlint "${markdown_files[@]}" 2>/dev/null; then
             echo -e "${YELLOW}Warning: Markdown linting issues found${NC}"
         fi
     fi

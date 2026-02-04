@@ -7,25 +7,38 @@ set -e
 
 echo "Setting up shell environment for {{ .profile }} profile..."
 
+# Append a line to a file only once
+append_once() {
+    local line="$1"
+    local file="$2"
+
+    if [[ -z "$line" || -z "$file" ]]; then
+        return 1
+    fi
+
+    touch "$file"
+    if ! grep -Fqx "$line" "$file" 2>/dev/null; then
+        echo "$line" >> "$file"
+    fi
+}
+
 # Install fzf key bindings and fuzzy completion
 if command -v fzf >/dev/null 2>&1; then
     echo "Setting up fzf..."
 
     # Install fzf keybindings for bash
-    if [[ -n "$BASH_VERSION" ]]; then
-        if [[ -f /usr/share/doc/fzf/examples/key-bindings.bash ]]; then
-            echo "source /usr/share/doc/fzf/examples/key-bindings.bash" >> ~/.bashrc.local
-        elif [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.bash ]]; then
-            echo "source /opt/homebrew/opt/fzf/shell/key-bindings.bash" >> ~/.bashrc.local
-        fi
+    if [[ -f /usr/share/doc/fzf/examples/key-bindings.bash ]]; then
+        append_once "source /usr/share/doc/fzf/examples/key-bindings.bash" "$HOME/.bashrc.local"
+    elif [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.bash ]]; then
+        append_once "source /opt/homebrew/opt/fzf/shell/key-bindings.bash" "$HOME/.bashrc.local"
     fi
 
     # Install fzf keybindings for zsh
-    if [[ -n "$ZSH_VERSION" ]]; then
+    if command -v zsh >/dev/null 2>&1; then
         if [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]]; then
-            echo "source /usr/share/doc/fzf/examples/key-bindings.zsh" >> ~/.zshrc.local
+            append_once "source /usr/share/doc/fzf/examples/key-bindings.zsh" "$HOME/.zshrc.local"
         elif [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
-            echo "source /opt/homebrew/opt/fzf/shell/key-bindings.zsh" >> ~/.zshrc.local
+            append_once "source /opt/homebrew/opt/fzf/shell/key-bindings.zsh" "$HOME/.zshrc.local"
         fi
     fi
 fi
@@ -42,11 +55,15 @@ fi
 {{- if .features.nodejs }}
 # Install NVM if not present
 if [[ ! -d ~/.nvm ]]; then
-    echo "Installing NVM (Node Version Manager)..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
-    nvm install --lts
+    if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
+        echo "Installing NVM (Node Version Manager)..."
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+        nvm install --lts
+    else
+        echo "Skipping NVM install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+    fi
 fi
 {{- end }}
 
@@ -55,8 +72,12 @@ fi
 if [[ ! -d ~/.pyenv ]] && command -v pyenv >/dev/null 2>&1; then
     echo "Pyenv is already installed via package manager"
 elif [[ ! -d ~/.pyenv ]]; then
-    echo "Installing pyenv..."
-    curl https://pyenv.run | bash
+    if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
+        echo "Installing pyenv..."
+        curl -fsSL https://pyenv.run | bash
+    else
+        echo "Skipping pyenv install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+    fi
 fi
 {{- end }}
 

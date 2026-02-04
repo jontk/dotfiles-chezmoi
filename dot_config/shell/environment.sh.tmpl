@@ -20,7 +20,7 @@ PATH="$HOME/.local/bin:$PATH"
 export GOPATH="${GOPATH:-$XDG_DATA_HOME/go}"
 export CARGO_HOME="${CARGO_HOME:-$XDG_DATA_HOME/cargo}"
 export RUSTUP_HOME="${RUSTUP_HOME:-$XDG_DATA_HOME/rustup}"
-export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-global}"
+export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$XDG_DATA_HOME/npm}"
 
 # Add development tool paths to PATH
 PATH="$GOPATH/bin:$PATH"
@@ -29,13 +29,14 @@ PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
 # Editor configuration
 {{- if .features.beta_features }}
-export EDITOR="${EDITOR:-nvim}"
+EDITOR="${EDITOR:-nvim}"
 {{- else }}
-export EDITOR="${EDITOR:-{{ .editor.default }}}"
+EDITOR="${EDITOR:-{{ .editor.default }}}"
 {{- end }}
 if ! command -v "$EDITOR" >/dev/null 2>&1; then
-    export EDITOR="${EDITOR:-vim}"
+    EDITOR="vim"
 fi
+export EDITOR
 export VISUAL="${VISUAL:-$EDITOR}"
 export SUDO_EDITOR="$EDITOR"
 
@@ -99,6 +100,8 @@ fi
 
 # Tool-specific configurations
 export RIPGREP_CONFIG_PATH="${RIPGREP_CONFIG_PATH:-$XDG_CONFIG_HOME/ripgrep/config}"
+export INPUTRC="${INPUTRC:-$XDG_CONFIG_HOME/readline/inputrc}"
+export GNUPGHOME="${GNUPGHOME:-$XDG_DATA_HOME/gnupg}"
 export GPG_TTY=$(tty 2>/dev/null || echo "not-a-tty")
 
 {{- if .features.docker }}
@@ -125,6 +128,7 @@ export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-$XDG_CACHE_HOME/npm}"
 # Python configuration
 export PYTHONSTARTUP="${PYTHONSTARTUP:-$XDG_CONFIG_HOME/python/startup.py}"
 export PYTHON_HISTORY="${PYTHON_HISTORY:-$XDG_STATE_HOME/python/history}"
+export PYTHONHISTFILE="${PYTHONHISTFILE:-$XDG_STATE_HOME/python/history}"
 export PYTHONUSERBASE="${PYTHONUSERBASE:-$XDG_DATA_HOME/python}"
 export WORKON_HOME="${WORKON_HOME:-$XDG_DATA_HOME/virtualenvs}"
 export PIPENV_VENV_IN_PROJECT="${PIPENV_VENV_IN_PROJECT:-1}"

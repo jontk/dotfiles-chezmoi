@@ -60,15 +60,16 @@ export LANG="${LANG:-en_US.UTF-8}"
 # Source environment variables
 [[ -f ~/.config/shell/environment.sh ]] && source ~/.config/shell/environment.sh
 
-# Development environment variables
-export GREP_OPTIONS="--color=auto"
-
 # Initialize completion system
 autoload -Uz compinit
-# Check if dump exists and is less than 24 hours old
-if [[ -f ~/.zcompdump && ~/.zcompdump -nt /usr/share/zsh ]] && [[ ! ~/.zcompdump -ot /usr/share/zsh ]]; then
-    compinit -C  # Skip security check for faster startup
+
+# Only skip security check if .zcompdump is fresh (< 24 hours old)
+# This balances performance with security
+if [[ -n ~/.zcompdump(#qNmh-24) ]]; then
+    # Dump file exists and is less than 24 hours old
+    compinit -C
 else
+    # Dump file is old or doesn't exist, do full check
     compinit
 fi
 
@@ -102,16 +103,20 @@ setup_prompt() {
     # Enable parameter expansion, command substitution and arithmetic expansion in prompts
     setopt PROMPT_SUBST
 
-    # Function to get git information
-    git_info() {
-        local branch
-        if branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
-            local git_status=""
-            if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-                git_status="*"
-            fi
-            echo " %F{magenta}(${branch}${git_status})%f"
-        fi
+    # Load VCS info for git integration (built-in, optimized)
+    autoload -Uz vcs_info
+
+    # Configure vcs_info for git
+    zstyle ':vcs_info:*' enable git
+    zstyle ':vcs_info:*' check-for-changes true
+    zstyle ':vcs_info:*' stagedstr '%F{green}●%f'
+    zstyle ':vcs_info:*' unstagedstr '%F{red}●%f'
+    zstyle ':vcs_info:git:*' formats ' %F{magenta}(%b%c%u)%f'
+    zstyle ':vcs_info:git:*' actionformats ' %F{magenta}(%b|%a%c%u)%f'
+
+    # Update vcs_info before each prompt
+    precmd() {
+        vcs_info
     }
 
     # Function to get exit status
@@ -123,8 +128,8 @@ setup_prompt() {
     # Simple prompt for minimal/server profiles
     PROMPT='%F{blue}%B%n@%m%b%f:%F{cyan}%B%~%b%f%# '
 {{- else }}
-    # Enhanced prompt with git info
-    PROMPT='$(exit_status) %F{green}%B%n%b%f@%F{yellow}%B%m%b%f:%F{cyan}%B%~%b%f$(git_info)%# '
+    # Enhanced prompt with git info (using optimized vcs_info)
+    PROMPT='$(exit_status) %F{green}%B%n%b%f@%F{yellow}%B%m%b%f:%F{cyan}%B%~%b%f${vcs_info_msg_0_}%# '
     RPROMPT='%F{gray}%*%f'
 {{- end }}
 }
@@ -225,19 +230,37 @@ if [[ -f "$HOME/.cargo/env" ]]; then
     source "$HOME/.cargo/env"
 fi
 
-# Auto-suggestions (if available)
+{{- if eq .profile "server" }}
+# Auto-suggestions and syntax highlighting (server profile fallback)
 if [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 elif [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
 
-# Syntax highlighting (if available) - load last
+# Syntax highlighting (load last)
 if [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
     source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 elif [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
     source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
+{{- else }}
+# Auto-suggestions and syntax highlighting (if plugin loader is not used)
+if [[ ! -f ~/.config/shell/plugins.zsh ]]; then
+    if [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+        source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    elif [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+        source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    fi
+
+    # Syntax highlighting (load last)
+    if [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+        source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    elif [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+        source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    fi
+fi
+{{- end }}
 
 {{- if ne .profile "server" }}
 # Load ZSH plugins

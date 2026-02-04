@@ -48,10 +48,29 @@ alias kdel='kubectl delete'
 alias kdelp='kubectl delete pod'
 alias kdeld='kubectl delete deployment'
 alias kdels='kubectl delete service'
-alias kdelns='kubectl delete namespace'
+# kdelns replaced with function for safety (see below)
 alias kdeling='kubectl delete ingress'
 alias kdelcm='kubectl delete configmap'
 alias kdelsec='kubectl delete secret'
+
+# Safe namespace deletion with confirmation
+kdelns() {
+    local namespace="$1"
+    if [[ -z "$namespace" ]]; then
+        echo "Usage: kdelns <namespace>"
+        return 1
+    fi
+
+    echo "WARNING: This will delete namespace '$namespace' and ALL resources in it!"
+    kubectl get all -n "$namespace" 2>/dev/null
+    read -p "Are you sure you want to delete namespace '$namespace'? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        kubectl delete namespace "$namespace"
+    else
+        echo "Cancelled."
+    fi
+}
 
 # Edit commands
 alias ke='kubectl edit'
@@ -111,12 +130,27 @@ klog() {
         return 1
     fi
     
-    local pod=$(kubectl get pods $namespace | grep "$pod_pattern" | head -1 | awk '{print $1}')
-    if [[ -n "$pod" ]]; then
-        kubectl logs -f "$pod" ${namespace:+-n ${namespace#--namespace=}}
+    if [[ "$namespace" == "--all-namespaces" || "$namespace" == "-A" ]]; then
+        local match
+        match=$(kubectl get pods --all-namespaces | awk -v pat="$pod_pattern" '$0 ~ pat {print $1, $2; exit}')
+        if [[ -n "$match" ]]; then
+            local ns pod
+            ns=$(echo "$match" | awk '{print $1}')
+            pod=$(echo "$match" | awk '{print $2}')
+            kubectl logs -f -n "$ns" "$pod"
+        else
+            echo "No pod found matching pattern: $pod_pattern"
+            return 1
+        fi
     else
-        echo "No pod found matching pattern: $pod_pattern"
-        return 1
+        local pod
+        pod=$(kubectl get pods -n "$namespace" | awk -v pat="$pod_pattern" '$0 ~ pat {print $1; exit}')
+        if [[ -n "$pod" ]]; then
+            kubectl logs -f -n "$namespace" "$pod"
+        else
+            echo "No pod found matching pattern: $pod_pattern"
+            return 1
+        fi
     fi
 }
 
@@ -158,10 +192,34 @@ kall() {
     kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -n "$namespace"
 }
 
-# Delete all pods in error state
+# Delete all pods in error state (with confirmation)
 kdelpe() {
     local namespace="${1:-default}"
-    kubectl get pods -n "$namespace" | grep -E 'Error|CrashLoopBackOff|ImagePullBackOff' | awk '{print $1}' | xargs -r kubectl delete pod -n "$namespace"
+
+    local error_pods=$(kubectl get pods -n "$namespace" 2>/dev/null | grep -E 'Error|CrashLoopBackOff|ImagePullBackOff' | awk '{print $1}')
+
+    if [[ -z "$error_pods" ]]; then
+        echo "No pods in error state found in namespace '$namespace'"
+        return 0
+    fi
+
+    echo "Pods in error state in namespace '$namespace':"
+    echo "$error_pods"
+    echo
+    read -p "Delete these pods? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "$error_pods" | xargs -r kubectl delete pod -n "$namespace"
+    else
+        echo "Cancelled."
+    fi
+}
+
+# Preview pods that would be deleted (dry-run)
+kdelpedry() {
+    local namespace="${1:-default}"
+    echo "Pods in error state in namespace '$namespace' (dry-run):"
+    kubectl get pods -n "$namespace" | grep -E 'Error|CrashLoopBackOff|ImagePullBackOff'
 }
 
 # Get pod resource usage

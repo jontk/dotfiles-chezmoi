@@ -7,6 +7,29 @@ set -e
 
 echo "Installing packages for {{ .profile }} profile on {{ .chezmoi.os }}..."
 
+# Verify SHA256 checksum (supports sha256sum or shasum)
+verify_sha256() {
+    local file="$1"
+    local expected="$2"
+    local actual=""
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        actual=$(sha256sum "$file" | awk '{print $1}')
+    elif command -v shasum >/dev/null 2>&1; then
+        actual=$(shasum -a 256 "$file" | awk '{print $1}')
+    else
+        echo "Warning: sha256sum/shasum not available; cannot verify $file"
+        return 1
+    fi
+
+    if [[ "$actual" != "$expected" ]]; then
+        echo "Error: SHA256 mismatch for $file"
+        echo "  Expected: $expected"
+        echo "  Actual:   $actual"
+        return 1
+    fi
+}
+
 {{- if eq .chezmoi.os "darwin" }}
 # macOS: Homebrew packages
 if ! command -v brew >/dev/null 2>&1; then
@@ -22,7 +45,7 @@ brew "fzf"
 brew "ripgrep"
 brew "fd"
 brew "bat"
-brew "exa"
+brew "eza"  # Modern replacement for exa (deprecated)
 brew "jq"
 brew "curl"
 brew "wget"
@@ -88,151 +111,178 @@ EOF
 {{- else if eq .chezmoi.osRelease.id "fedora" }}
 # Fedora
 echo "Installing DNF packages..."
-sudo dnf install -y \
-    git \
-    fzf \
-    ripgrep \
-    fd-find \
-    bat \
-    jq \
-    curl \
-    wget \
-    tree \
-    htop \
+pkgs=(
+    git
+    fzf
+    ripgrep
+    fd-find
+    bat
+    jq
+    curl
+    wget
+    tree
+    htop
+)
 {{- if .features.starship }}
-    starship \
+pkgs+=(starship)
 {{- end }}
 {{- if .features.tmux }}
-    tmux \
+pkgs+=(tmux)
 {{- end }}
 {{- if .features.editors_full }}
-    vim \
+pkgs+=(vim)
 {{- if .features.beta_features }}
-    neovim \
+pkgs+=(neovim)
 {{- end }}
 {{- end }}
 {{- if .features.nodejs }}
-    nodejs \
-    npm \
+pkgs+=(nodejs npm)
 {{- end }}
 {{- if .features.python }}
-    python3 \
-    python3-pip \
-    python3-devel \
+pkgs+=(python3 python3-pip python3-devel)
 {{- end }}
 {{- if .features.golang }}
-    golang \
+pkgs+=(golang)
 {{- end }}
 {{- if .features.docker }}
-    docker \
-    docker-compose \
+pkgs+=(docker docker-compose)
 {{- end }}
 {{- if .features.kubernetes }}
-    kubectl \
+pkgs+=(kubectl)
 {{- end }}
-    && true
+sudo dnf install -y "${pkgs[@]}"
+
 
 {{- else if eq .chezmoi.osRelease.id "ubuntu" }}
 # Ubuntu/Debian
 echo "Installing APT packages..."
-sudo apt update && sudo apt install -y \
-    git \
-    fzf \
-    ripgrep \
-    fd-find \
-    bat \
-    jq \
-    curl \
-    wget \
-    tree \
-    htop \
-    build-essential \
+pkgs=(
+    git
+    fzf
+    ripgrep
+    fd-find
+    bat
+    jq
+    curl
+    wget
+    tree
+    htop
+    build-essential
+)
 {{- if .features.tmux }}
-    tmux \
+pkgs+=(tmux)
 {{- end }}
 {{- if .features.editors_full }}
-    vim \
+pkgs+=(vim)
 {{- if .features.beta_features }}
-    neovim \
+pkgs+=(neovim)
 {{- end }}
 {{- end }}
 {{- if .features.nodejs }}
-    nodejs \
-    npm \
+pkgs+=(nodejs npm)
 {{- end }}
 {{- if .features.python }}
-    python3 \
-    python3-pip \
-    python3-venv \
-    python3-dev \
+pkgs+=(python3 python3-pip python3-venv python3-dev)
 {{- end }}
 {{- if .features.golang }}
-    golang \
+pkgs+=(golang)
 {{- end }}
 {{- if .features.docker }}
-    docker.io \
-    docker-compose \
+pkgs+=(docker.io docker-compose)
 {{- end }}
-    && true
+sudo apt update
+sudo apt install -y "${pkgs[@]}"
+
 
 {{- if .features.starship }}
 # Install starship (not in Ubuntu repos)
-curl -sS https://starship.rs/install.sh | sh -s -- -y
+if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
+    STARSHIP_INSTALLER="/tmp/starship-install-$$.sh"
+    curl -fsSL https://starship.rs/install.sh -o "$STARSHIP_INSTALLER"
+    chmod +x "$STARSHIP_INSTALLER"
+    "$STARSHIP_INSTALLER" -y
+    rm "$STARSHIP_INSTALLER"
+else
+    echo "Skipping starship install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+fi
 {{- end }}
 
 {{- if .features.kubernetes }}
 # Install kubectl (from official k8s repo)
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+KUBECTL_VERSION=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256"
+verify_sha256 "kubectl" "$(cat kubectl.sha256)"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-rm kubectl
+rm kubectl kubectl.sha256
 {{- end }}
 
 {{- else if or (eq .chezmoi.osRelease.id "rhel") (eq .chezmoi.osRelease.id "rocky") (eq .chezmoi.osRelease.id "almalinux") }}
 # RHEL/Rocky/AlmaLinux
 echo "Installing DNF packages..."
-sudo dnf install -y \
-    git \
-    fzf \
-    ripgrep \
-    jq \
-    curl \
-    wget \
-    tree \
-    htop \
+pkgs=(
+    git
+    fzf
+    ripgrep
+    jq
+    curl
+    wget
+    tree
+    htop
+)
 {{- if .features.tmux }}
-    tmux \
+pkgs+=(tmux)
 {{- end }}
 {{- if .features.editors_full }}
-    vim \
+pkgs+=(vim)
 {{- if .features.beta_features }}
-    neovim \
+pkgs+=(neovim)
 {{- end }}
 {{- end }}
 {{- if .features.python }}
-    python3 \
-    python3-pip \
-    python3-devel \
+pkgs+=(python3 python3-pip python3-devel)
 {{- end }}
-    && true
+sudo dnf install -y "${pkgs[@]}"
+
 
 {{- if .features.starship }}
 # Install starship (not in RHEL repos)
-curl -sS https://starship.rs/install.sh | sh -s -- -y
+if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
+    STARSHIP_INSTALLER="/tmp/starship-install-$$.sh"
+    curl -fsSL https://starship.rs/install.sh -o "$STARSHIP_INSTALLER"
+    chmod +x "$STARSHIP_INSTALLER"
+    "$STARSHIP_INSTALLER" -y
+    rm "$STARSHIP_INSTALLER"
+else
+    echo "Skipping starship install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+fi
 {{- end }}
 
 {{- if .features.nodejs }}
 # Install Node.js from NodeSource
-curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
-sudo dnf install -y nodejs
+if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
+    NODESOURCE_SCRIPT="/tmp/nodesource-setup-$$.sh"
+    curl -fsSL https://rpm.nodesource.com/setup_lts.x -o "$NODESOURCE_SCRIPT"
+    chmod +x "$NODESOURCE_SCRIPT"
+    sudo bash "$NODESOURCE_SCRIPT"
+    rm "$NODESOURCE_SCRIPT"
+    sudo dnf install -y nodejs
+else
+    echo "Skipping NodeSource install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+    echo "Note: You can install Node.js via your distro repos or module streams."
+fi
 {{- end }}
 
 {{- if .features.golang }}
 # Install Go from official source
-GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n1)
-curl -LO "https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz"
+GO_VERSION=$(curl -fsSL https://go.dev/VERSION?m=text | head -n1)
+GO_TARBALL="${GO_VERSION}.linux-amd64.tar.gz"
+curl -fsSLO "https://go.dev/dl/${GO_TARBALL}"
+curl -fsSLO "https://go.dev/dl/${GO_TARBALL}.sha256"
+verify_sha256 "${GO_TARBALL}" "$(cat ${GO_TARBALL}.sha256)"
 sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf "${GO_VERSION}.linux-amd64.tar.gz"
-rm "${GO_VERSION}.linux-amd64.tar.gz"
+sudo tar -C /usr/local -xzf "${GO_TARBALL}"
+rm "${GO_TARBALL}" "${GO_TARBALL}.sha256"
 {{- end }}
 
 {{- if .features.docker }}
@@ -245,9 +295,12 @@ sudo usermod -aG docker $USER
 
 {{- if .features.kubernetes }}
 # Install kubectl
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+KUBECTL_VERSION=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256"
+verify_sha256 "kubectl" "$(cat kubectl.sha256)"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-rm kubectl
+rm kubectl kubectl.sha256
 {{- end }}
 
 {{- end }}
@@ -257,6 +310,30 @@ rm kubectl
 if [[ ! -f ~/.vim/autoload/plug.vim ]]; then
     curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
         https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+fi
+{{- end }}
+
+# Fix package naming inconsistencies on Debian/Ubuntu
+{{- if or (eq .chezmoi.osRelease.id "ubuntu") (eq .chezmoi.osRelease.id "debian") }}
+echo "Creating symlinks for renamed packages..."
+
+# bat is installed as batcat on Ubuntu/Debian
+if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
+    mkdir -p ~/.local/bin
+    ln -sf "$(which batcat)" ~/.local/bin/bat
+    echo "  Created bat -> batcat symlink"
+fi
+
+# fd-find is installed as fdfind on Ubuntu/Debian
+if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
+    mkdir -p ~/.local/bin
+    ln -sf "$(which fdfind)" ~/.local/bin/fd
+    echo "  Created fd -> fdfind symlink"
+fi
+
+# Ensure ~/.local/bin is in PATH (it will be after shell restart)
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    echo "Note: ~/.local/bin will be added to PATH after shell restart"
 fi
 {{- end }}
 

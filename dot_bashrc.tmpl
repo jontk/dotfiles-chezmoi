@@ -31,7 +31,6 @@ export LANG="${LANG:-en_US.UTF-8}"
 # Development environment variables
 export PAGER="${PAGER:-less}"
 export LESS="${LESS:--R -F -X}"
-export GREP_OPTIONS="--color=auto"
 export CLICOLOR=1
 
 # Source global definitions
@@ -51,18 +50,6 @@ setup_prompt() {
     local purple='\[\033[35m\]'
     local cyan='\[\033[36m\]'
 
-    # Function to get git branch
-    git_branch() {
-        local branch
-        if branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
-            local status=""
-            if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-                status="*"
-            fi
-            echo " (${branch}${status})"
-        fi
-    }
-
     # Function to get exit status indicator
     exit_status() {
         if [[ $? -eq 0 ]]; then
@@ -72,12 +59,47 @@ setup_prompt() {
         fi
     }
 
+    # Try to use optimized git-prompt if available
+    if [[ -f /usr/share/git-core/contrib/completion/git-prompt.sh ]]; then
+        source /usr/share/git-core/contrib/completion/git-prompt.sh
+        GIT_PS1_SHOWDIRTYSTATE=1
+        GIT_PS1_SHOWSTASHSTATE=1
+        GIT_PS1_SHOWUNTRACKEDFILES=1
+        GIT_PS1_SHOWUPSTREAM="auto"
+    elif [[ -f /usr/lib/git-core/git-sh-prompt ]]; then
+        source /usr/lib/git-core/git-sh-prompt
+        GIT_PS1_SHOWDIRTYSTATE=1
+        GIT_PS1_SHOWSTASHSTATE=1
+        GIT_PS1_SHOWUNTRACKEDFILES=1
+        GIT_PS1_SHOWUPSTREAM="auto"
+    elif [[ -f /opt/homebrew/etc/bash_completion.d/git-prompt.sh ]]; then
+        source /opt/homebrew/etc/bash_completion.d/git-prompt.sh
+        GIT_PS1_SHOWDIRTYSTATE=1
+        GIT_PS1_SHOWSTASHSTATE=1
+        GIT_PS1_SHOWUNTRACKEDFILES=1
+        GIT_PS1_SHOWUPSTREAM="auto"
+    elif [[ -f ~/.local/share/git-prompt.sh ]]; then
+        source ~/.local/share/git-prompt.sh
+        GIT_PS1_SHOWDIRTYSTATE=1
+        GIT_PS1_SHOWSTASHSTATE=1
+        GIT_PS1_SHOWUNTRACKEDFILES=1
+        GIT_PS1_SHOWUPSTREAM="auto"
+    else
+        # Fallback: simple git branch function (no status check for performance)
+        __git_ps1() {
+            local branch
+            if branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
+                echo " ($branch)"
+            fi
+        }
+    fi
+
 {{- if eq .shell.prompt_style "simple" }}
     # Simple prompt for minimal/server profiles
     PS1="${bold}${blue}\u@\h${reset}:${bold}${cyan}\w${reset}\$ "
 {{- else }}
-    # Enhanced prompt with git info
-    PS1="\$(exit_status) ${bold}${green}\u${reset}@${bold}${yellow}\h${reset}:${bold}${cyan}\w${reset}${purple}\$(git_branch)${reset}\$ "
+    # Enhanced prompt with git info (using optimized __git_ps1)
+    PS1="\$(exit_status) ${bold}${green}\u${reset}@${bold}${yellow}\h${reset}:${bold}${cyan}\w${reset}${purple}\$(__git_ps1 ' (%s)')${reset}\$ "
 {{- end }}
 }
 
@@ -109,7 +131,9 @@ if [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]]; then
 fi
 
 # Git completion
-if [[ -f ~/.git-completion.bash ]]; then
+if [[ -f ~/.local/share/git-completion.bash ]]; then
+    source ~/.local/share/git-completion.bash
+elif [[ -f ~/.git-completion.bash ]]; then
     source ~/.git-completion.bash
 fi
 

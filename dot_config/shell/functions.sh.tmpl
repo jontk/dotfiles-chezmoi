@@ -68,9 +68,16 @@ ff() {
 }
 
 # Find directories by name pattern
-fd() {
+fdir() {
     find . -type d -name "*$1*" 2>/dev/null
 }
+
+# Provide fd alias only if fd binary isn't available
+if ! command -v fd >/dev/null 2>&1; then
+    fd() {
+        fdir "$@"
+    }
+fi
 
 # Quick web search
 websearch() {
