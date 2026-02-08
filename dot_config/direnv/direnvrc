@@ -1,0 +1,76 @@
+# ============================================================================
+# Nix Integration
+# ============================================================================
+
+use_nix() {
+  eval "$(lorri direnv bash)"
+}
+
+use_flake() {
+  watch_file flake.nix
+  watch_file flake.lock
+  eval "$(nix print-dev-env --profile "$(direnv_layout_dir)/flake-profile")"
+}
+
+# ============================================================================
+# Python Layouts
+# ============================================================================
+
+layout_poetry() {
+  if [[ ! -f pyproject.toml ]]; then
+    log_error 'No pyproject.toml found. Use `poetry init` to create one first.'
+    exit 2
+  fi
+
+  VIRTUAL_ENV=$(poetry env info --path 2>/dev/null ; true)
+
+  if [[ -z $VIRTUAL_ENV || ! -d $VIRTUAL_ENV ]]; then
+    log_status "No virtual environment exists. Executing \`poetry install\` to create one."
+    poetry install
+    VIRTUAL_ENV=$(poetry env info --path)
+  fi
+
+  PATH_add "$VIRTUAL_ENV/bin"
+  export POETRY_ACTIVE=1
+  export VIRTUAL_ENV
+}
+
+layout_python-venv() {
+  local python=${1:-python3}
+  [[ $# -gt 0 ]] && shift
+  unset PYTHONHOME
+  if [[ -n $VIRTUAL_ENV ]]; then
+    VIRTUAL_ENV=$(realpath "${VIRTUAL_ENV}")
+  else
+    local python_version
+    python_version=$("$python" -c "import platform; print(platform.python_version())")
+    if [[ -z $python_version ]]; then
+      log_error "Could not detect Python version"
+      return 1
+    fi
+    VIRTUAL_ENV=$PWD/.direnv/python-venv-$python_version
+  fi
+  export VIRTUAL_ENV
+  if [[ ! -d $VIRTUAL_ENV ]]; then
+    log_status "no venv found; creating $VIRTUAL_ENV"
+    "$python" -m venv "$VIRTUAL_ENV"
+  fi
+  PATH_add "$VIRTUAL_ENV/bin"
+}
+
+# ============================================================================
+# Node.js Layouts
+# ============================================================================
+
+layout_node() {
+  PATH_add node_modules/.bin
+}
+
+# ============================================================================
+# Go Layout
+# ============================================================================
+
+layout_go() {
+  export GOPATH="$PWD/.go"
+  PATH_add "$GOPATH/bin"
+}

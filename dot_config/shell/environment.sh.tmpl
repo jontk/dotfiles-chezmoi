@@ -95,10 +95,20 @@ export LESSHISTFILE="${LESSHISTFILE:-$XDG_STATE_HOME/less/history}"
 # Use bat as manpager if available
 if command -v bat >/dev/null 2>&1; then
     export MANPAGER="${MANPAGER:-sh -c 'col -bx | bat -l man -p'}"
+    export MANROFFOPT="-c"
+    export BAT_THEME="Dracula"
 else
     export MANPAGER="${MANPAGER:-less}"
 fi
 export MANWIDTH="${MANWIDTH:-80}"
+
+# NixOS configuration root
+{{- if eq .chezmoi.os "linux" }}
+export CONFIG_ROOT="${CONFIG_ROOT:-$HOME/src/github.com/jontk/nixconf}"
+{{- end }}
+
+# Vi mode key timeout (for faster ESC in shell)
+export KEYTIMEOUT=1
 
 # Language and locale settings
 export LANG="${LANG:-en_US.UTF-8}"
@@ -205,6 +215,10 @@ case "$(uname -s)" in
     Linux)
         # Linux specific
         export SYSTEMD_EDITOR="$EDITOR"
+
+        # Qt theme - use GTK theme
+        export QT_QPA_PLATFORMTHEME=gtk3
+        export QT_STYLE_OVERRIDE=gtk3
         ;;
 esac
 

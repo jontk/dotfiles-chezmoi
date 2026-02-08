@@ -120,4 +120,155 @@ path_remove() {
     export PATH=$(echo ":$PATH:" | sed "s|:$1:|:|g" | sed 's/^://;s/:$//')
 }
 
+# ============================================================================
+# Secrets Management
+# ============================================================================
+
+secrets() {
+  local secrets_dir="$HOME/.local/share/secrets"
+
+  if [[ ! -d "$secrets_dir" ]]; then
+    echo "Secrets directory not found. Creating: $secrets_dir"
+    mkdir -p "$secrets_dir"
+    return 1
+  fi
+
+  case "$1" in
+    list|ls)
+      ls -la "$secrets_dir"
+      ;;
+    edit)
+      ${EDITOR:-nvim} "$secrets_dir/${2:-.env}"
+      ;;
+    view)
+      cat "$secrets_dir/${2:-.env}"
+      ;;
+    source)
+      if [[ -f "$secrets_dir/${2:-.env}" ]]; then
+        source "$secrets_dir/${2:-.env}"
+        echo "Sourced secrets from: $secrets_dir/${2:-.env}"
+      else
+        echo "Secret file not found: $secrets_dir/${2:-.env}"
+        return 1
+      fi
+      ;;
+    *)
+      echo "Usage: secrets {list|edit|view|source} [filename]"
+      return 1
+      ;;
+  esac
+}
+
+edit-secrets() {
+  secrets edit "$1"
+}
+
+secret-status() {
+  local secrets_dir="$HOME/.local/share/secrets"
+  if [[ -d "$secrets_dir" ]]; then
+    echo "Secrets directory: $secrets_dir"
+    echo "Files:"
+    ls -1 "$secrets_dir"
+  else
+    echo "No secrets directory found"
+  fi
+}
+
+# ============================================================================
+# NixOS System Maintenance
+# ============================================================================
+{{- if eq .chezmoi.os "linux" }}
+
+nix-update() {
+  echo "Updating flake inputs..."
+  cd "$CONFIG_ROOT" && nix flake update --commit-lock-file
+}
+
+nix-rollback() {
+  echo "Rolling back to previous generation..."
+  sudo nixos-rebuild switch --rollback
+}
+
+nix-maintain() {
+  echo "Running garbage collection..."
+  nix-collect-garbage -d
+  echo "Optimizing store..."
+  nix-store --optimize
+}
+
+system-status() {
+  echo "=== NixOS System Status ==="
+  echo ""
+  echo "Current generation:"
+  sudo nix-env --list-generations --profile /nix/var/nix/profiles/system | tail -5
+  echo ""
+  echo "Disk usage:"
+  df -h / /nix
+  echo ""
+  echo "Store size:"
+  du -sh /nix/store
+}
+
+system-health() {
+  echo "=== System Health Check ==="
+  echo ""
+  echo "Failed systemd services:"
+  systemctl --failed
+  echo ""
+  echo "Recent journal errors:"
+  journalctl -p err -n 20 --no-pager
+}
+
+system-cleanup() {
+  echo "=== System Cleanup ==="
+  echo "Removing old generations (keeping last 5)..."
+  sudo nix-env --delete-generations +5 --profile /nix/var/nix/profiles/system
+  echo "Garbage collection..."
+  sudo nix-collect-garbage -d
+  echo "Optimizing store..."
+  sudo nix-store --optimize
+  echo "Done!"
+}
+
+quick-update() {
+  cd "$CONFIG_ROOT" && git pull && sudo nixos-rebuild switch --flake .#
+}
+
+emergency-rollback() {
+  sudo nixos-rebuild switch --rollback && echo "Rolled back. Rebooting in 5 seconds..." && sleep 5 && sudo reboot
+}
+
+system-backup() {
+  local backup_dir="$HOME/backups/system-$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$backup_dir"
+  echo "Backing up to: $backup_dir"
+  cp -r "$CONFIG_ROOT" "$backup_dir/"
+  cp /etc/nixos/hardware-configuration.nix "$backup_dir/" 2>/dev/null || true
+  echo "Backup complete!"
+}
+
+{{- end }}
+
+# ============================================================================
+# Development Helpers
+# ============================================================================
+
+# Find and cd to a git repository
+repo() {
+  local repo_dir
+  repo_dir=$(find ~/src -maxdepth 3 -type d -name .git 2>/dev/null | sed 's|/.git$||' | fzf)
+  if [[ -n "$repo_dir" ]]; then
+    cd "$repo_dir" || return
+  fi
+}
+
+# Quick project switcher
+proj() {
+  local project
+  project=$(ls -1 ~/src/github.com/jontk/ 2>/dev/null | fzf)
+  if [[ -n "$project" ]]; then
+    cd "$HOME/src/github.com/jontk/$project" || return
+  fi
+}
+
 {{- end }}

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Development Session
+Comment=Launch tmux development environment
+Exec=foot -e tmux new-session -A -s dev
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;System;

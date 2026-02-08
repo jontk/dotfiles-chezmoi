@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Quick Edit
+Comment=Quick file editor with Neovim
+Exec=foot -e nvim %F
+Icon=text-editor
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;

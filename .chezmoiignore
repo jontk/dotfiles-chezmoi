@@ -47,11 +47,6 @@ Library/
 # Skip editor configs if not in full editor profile
 .vimrc
 .config/nvim/
-{{- else }}
-{{- if not .features.beta_features }}
-# Skip neovim if not experimental profile
-.config/nvim/
-{{- end }}
 {{- end }}
 
 {{- if eq .profile "minimal" }}

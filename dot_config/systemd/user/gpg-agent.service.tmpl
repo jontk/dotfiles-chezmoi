@@ -1,0 +1,19 @@
+[Unit]
+Description=GnuPG cryptographic agent and passphrase cache
+Documentation=man:gpg-agent(1)
+Requires=gpg-agent.socket
+
+[Service]
+Type=simple
+{{- if stat "/run/current-system/sw/bin/gpg-agent" }}
+ExecStart=/run/current-system/sw/bin/gpg-agent --supervised --enable-ssh-support
+ExecReload=/run/current-system/sw/bin/gpgconf --reload gpg-agent
+{{- else }}
+ExecStart=/usr/bin/gpg-agent --supervised --enable-ssh-support
+ExecReload=/usr/bin/gpgconf --reload gpg-agent
+{{- end }}
+Environment="GNUPGHOME=%h/.local/share/gnupg"
+
+[Install]
+Also=gpg-agent-ssh.socket
+WantedBy=default.target

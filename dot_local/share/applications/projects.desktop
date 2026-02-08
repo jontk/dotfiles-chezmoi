@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Projects
+Comment=Browse development projects
+Exec=thunar ~/src/github.com/jontk
+Icon=folder-development
+Terminal=false
+Categories=FileManager;System;

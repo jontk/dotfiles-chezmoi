@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=System Monitor
+Comment=Advanced system resource monitor
+Exec=foot -e btop
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;
