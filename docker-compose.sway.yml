@@ -1,0 +1,56 @@
+# Sway Desktop for Testing WM Configs (Fedora 41)
+#
+# Usage:
+#   docker compose -f docker-compose.sway.yml up --build
+#   Open: http://localhost:6080/vnc.html
+#
+# Remote access via SSH tunnel:
+#   ssh -L 6080:localhost:6080 user@remote-server
+#
+# Live reload workflow:
+#   1. Edit configs in this repo
+#   2. In container: chezmoi apply
+#   3. In Sway: Mod+Shift+c to reload
+
+services:
+  sway-desktop:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    container_name: sway-dotfiles-test
+    hostname: sway-dev
+    ports:
+      - "6080:6080"   # noVNC web access
+      - "5900:5900"   # VNC direct access
+    volumes:
+      # Mount the entire dotfiles repo as chezmoi source
+      - .:/home/dev/dotfiles:ro
+      # Persist home directory data between runs
+      - sway-home:/home/dev/.local
+      - sway-cache:/home/dev/.cache
+      - sway-config:/home/dev/.config
+    environment:
+      - WLR_BACKENDS=headless
+      - WLR_LIBINPUT_NO_DEVICES=1
+      - WLR_RENDERER=pixman
+      - WAYLAND_DISPLAY=wayland-1
+      - MOZ_ENABLE_WAYLAND=1
+      - LANG=en_US.UTF-8
+      # Chezmoi config
+      - CHEZMOI_SOURCE=/home/dev/dotfiles
+    # Required for Sway in container
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    # Helpful for debugging
+    stdin_open: true
+    tty: true
+
+volumes:
+  sway-home:
+  sway-cache:
+  sway-config:

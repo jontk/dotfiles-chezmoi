@@ -27,6 +27,53 @@ PATH="$GOPATH/bin:$PATH"
 PATH="$CARGO_HOME/bin:$PATH"
 PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
+{{- if .features.golang }}
+# User-space Go installation (takes precedence over system Go)
+if [[ -d "$HOME/.local/go" ]]; then
+    export GOROOT="$HOME/.local/go"
+    PATH="$GOROOT/bin:$PATH"
+fi
+{{- end }}
+
+{{- if .features.nodejs }}
+# Bun - JavaScript runtime & package manager
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+PATH="$BUN_INSTALL/bin:$PATH"
+{{- end }}
+
+# Rust/Cargo - source cargo env if installed via rustup
+if [[ -f "$CARGO_HOME/env" ]]; then
+    source "$CARGO_HOME/env"
+fi
+
+# Zig - build system (used for Ghostty, etc.)
+if [[ -d "$HOME/.local/zig" ]]; then
+    PATH="$HOME/.local/zig:$PATH"
+fi
+
+# Kitty terminal (user-space installation)
+if [[ -d "$HOME/.local/kitty.app" ]]; then
+    PATH="$HOME/.local/kitty.app/bin:$PATH"
+fi
+
+{{- if .features.ruby }}
+# rbenv - Ruby version manager
+export RBENV_ROOT="${RBENV_ROOT:-$HOME/.rbenv}"
+if [[ -d "$RBENV_ROOT/bin" ]]; then
+    PATH="$RBENV_ROOT/bin:$PATH"
+fi
+{{- end }}
+
+{{- if .features.java }}
+# SDKMAN - JVM ecosystem manager
+export SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
+{{- end }}
+
+{{- if .features.compilers }}
+# Spack - package manager for compilers
+export SPACK_ROOT="${SPACK_ROOT:-$HOME/.local/spack}"
+{{- end }}
+
 # Editor configuration
 {{- if .features.beta_features }}
 EDITOR="${EDITOR:-nvim}"

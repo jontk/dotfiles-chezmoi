@@ -1,0 +1,195 @@
+# Kitty terminal configuration
+# Managed by chezmoi - Profile: {{ .profile }}
+
+# =============================================================================
+# Font configuration
+# =============================================================================
+{{- if .features.fonts }}
+font_family      JetBrainsMono Nerd Font
+bold_font        JetBrainsMono Nerd Font Bold
+italic_font      JetBrainsMono Nerd Font Italic
+bold_italic_font JetBrainsMono Nerd Font Bold Italic
+{{- else }}
+font_family      monospace
+{{- end }}
+
+{{- if eq .profile "experimental" }}
+font_size 14.0
+{{- else }}
+font_size 12.0
+{{- end }}
+adjust_line_height  1
+adjust_column_width 0
+
+# =============================================================================
+# Cursor customization
+# =============================================================================
+cursor_shape block
+cursor_blink_interval 0
+cursor_stop_blinking_after 0
+
+# =============================================================================
+# Scrollback
+# =============================================================================
+scrollback_lines 10000
+scrollback_pager_history_size 0
+
+# =============================================================================
+# Mouse
+# =============================================================================
+mouse_hide_wait 3.0
+url_style curly
+open_url_with default
+
+# =============================================================================
+# Performance
+# =============================================================================
+repaint_delay 10
+input_delay 3
+sync_to_monitor yes
+
+# =============================================================================
+# Terminal bell
+# =============================================================================
+enable_audio_bell no
+visual_bell_duration 0.0
+window_alert_on_bell yes
+
+# =============================================================================
+# Window layout
+# =============================================================================
+remember_window_size  yes
+initial_window_width  120c
+initial_window_height 40c
+window_padding_width 5
+{{- if eq .chezmoi.os "darwin" }}
+hide_window_decorations titlebar-only
+macos_titlebar_color background
+{{- end }}
+
+# =============================================================================
+# Tab bar
+# =============================================================================
+tab_bar_edge top
+tab_bar_style powerline
+tab_bar_min_tabs 2
+tab_powerline_style angled
+
+# =============================================================================
+# Color scheme (Dracula)
+# =============================================================================
+foreground #f8f8f2
+background #282a36
+background_opacity 0.95
+selection_foreground #ffffff
+selection_background #44475a
+
+# Black
+color0 #000000
+color8 #4d4d4d
+
+# Red
+color1 #ff5555
+color9 #ff6e67
+
+# Green
+color2  #50fa7b
+color10 #5af78e
+
+# Yellow
+color3  #f1fa8c
+color11 #f4f99d
+
+# Blue
+color4  #bd93f9
+color12 #caa9fa
+
+# Magenta
+color5  #ff79c6
+color13 #ff92d0
+
+# Cyan
+color6  #8be9fd
+color14 #9aedfe
+
+# White
+color7  #bfbfbf
+color15 #e6e6e6
+
+# =============================================================================
+# macOS specific
+# =============================================================================
+{{- if eq .chezmoi.os "darwin" }}
+macos_option_as_alt yes
+macos_quit_when_last_window_closed yes
+macos_window_resizable yes
+macos_thicken_font 0
+macos_traditional_fullscreen no
+macos_show_window_title_in all
+
+# macOS keyboard shortcuts
+map cmd+c copy_to_clipboard
+map cmd+v paste_from_clipboard
+map cmd+n new_os_window
+map cmd+w close_window
+map cmd+enter toggle_fullscreen
+map cmd+equal change_font_size all +2.0
+map cmd+minus change_font_size all -2.0
+map cmd+0 change_font_size all 0
+
+# Tab management (macOS)
+map cmd+t new_tab
+map cmd+shift+t new_tab_with_cwd
+map cmd+] next_tab
+map cmd+[ previous_tab
+map cmd+1 goto_tab 1
+map cmd+2 goto_tab 2
+map cmd+3 goto_tab 3
+map cmd+4 goto_tab 4
+map cmd+5 goto_tab 5
+map cmd+6 goto_tab 6
+map cmd+7 goto_tab 7
+map cmd+8 goto_tab 8
+map cmd+9 goto_tab 9
+
+# Window management (macOS)
+map cmd+d new_window_with_cwd
+map cmd+shift+d new_window
+map cmd+shift+] next_window
+map cmd+shift+[ previous_window
+{{- else }}
+# Linux keyboard shortcuts
+map ctrl+shift+c copy_to_clipboard
+map ctrl+shift+v paste_from_clipboard
+map ctrl+shift+n new_os_window
+map ctrl+shift+w close_window
+map ctrl+shift+enter toggle_fullscreen
+map ctrl+plus change_font_size all +2.0
+map ctrl+minus change_font_size all -2.0
+map ctrl+0 change_font_size all 0
+
+# Tab management (Linux)
+map ctrl+shift+t new_tab
+map ctrl+shift+alt+t new_tab_with_cwd
+map ctrl+shift+right next_tab
+map ctrl+shift+left previous_tab
+map ctrl+alt+1 goto_tab 1
+map ctrl+alt+2 goto_tab 2
+map ctrl+alt+3 goto_tab 3
+map ctrl+alt+4 goto_tab 4
+map ctrl+alt+5 goto_tab 5
+
+# Window management (Linux)
+map ctrl+shift+d new_window_with_cwd
+map ctrl+shift+] next_window
+map ctrl+shift+[ previous_window
+{{- end }}
+
+# =============================================================================
+# Shell integration
+# =============================================================================
+shell_integration enabled
+allow_remote_control yes
+
+# Include local overrides
+# include ~/.config/kitty/local.conf

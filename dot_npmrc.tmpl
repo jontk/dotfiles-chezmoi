@@ -24,8 +24,12 @@ save-exact=false
 save-prefix=^
 package-lock=true
 
-# Global package location (prevents permission issues)
+# Global package location
+# Note: When using fnm/nvm, global packages are managed per-node-version
+# Only set prefix if NOT using a node version manager
+{{- if not .features.nodejs }}
 prefix=${HOME}/.npm-global
+{{- end }}
 
 # Development settings
 {{- if .git.name }}

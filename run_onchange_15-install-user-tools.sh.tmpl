@@ -1,0 +1,709 @@
+#!/bin/bash
+# User-space tool installation script
+# Installs modern development tools without requiring sudo
+# Profile: {{ .profile }}
+#
+# Version hash (changing these triggers re-run):
+# eget: {{ .tools.eget.version }}
+# fnm: {{ .tools.fnm.version }}
+# bun: {{ .tools.bun.version }}
+# uv: {{ .tools.uv.version }}
+# go: {{ .tools.go.version }}
+# rustup: {{ .tools.rustup.version }}
+# rbenv: {{ .tools.rbenv.version }}
+# sdkman: {{ .tools.sdkman.version }}
+# spack: {{ .tools.spack.version }}
+# cli_tools: {{ .tools.ripgrep.version }}-{{ .tools.fd.version }}-{{ .tools.bat.version }}
+
+set -e
+
+{{- if or (eq .profile "minimal") (eq .profile "server") }}
+# Skip user-space tools for minimal/server profiles
+echo "Skipping user-space tool installation for {{ .profile }} profile"
+exit 0
+{{- end }}
+
+# Check if remote installs are allowed
+if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" != "1" ]]; then
+    echo "Skipping user-space tool installation (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+    exit 0
+fi
+
+# Check for internet connectivity
+check_connectivity() {
+    if ! curl -fsSL --connect-timeout 5 https://github.com >/dev/null 2>&1; then
+        echo "No internet connectivity detected, skipping user-space tool installation"
+        exit 0
+    fi
+}
+
+check_connectivity
+
+# Try to get GitHub token from gh CLI for higher rate limits
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    export GITHUB_TOKEN=$(gh auth token 2>/dev/null)
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        echo "Using GitHub token from gh CLI for higher rate limits"
+    fi
+fi
+
+echo "Installing user-space development tools for {{ .profile }} profile..."
+echo ""
+
+# Ensure directories exist
+mkdir -p "$HOME/.local/bin"
+mkdir -p "$HOME/.local/share"
+
+# Detect architecture
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64) ARCH_ALT="x64"; ARCH_GO="amd64"; ARCH_EGET="amd64" ;;
+    aarch64|arm64) ARCH_ALT="arm64"; ARCH_GO="arm64"; ARCH_EGET="arm64" ;;
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+OS_UPPER=$(uname -s)
+
+# Helper function to get installed version
+get_version() {
+    local cmd="$1"
+    local version_flag="${2:---version}"
+    if command -v "$cmd" >/dev/null 2>&1; then
+        "$cmd" $version_flag 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo "unknown"
+    else
+        echo "not-installed"
+    fi
+}
+
+# =============================================================================
+# eget - Bootstrap installer for other tools
+# =============================================================================
+EGET_VERSION="{{ .tools.eget.version }}"
+EGET_INSTALLED=$(get_version eget)
+
+install_eget() {
+    echo "Installing eget v${EGET_VERSION}..."
+
+    local EGET_URL="https://github.com/zyedidia/eget/releases/download/v${EGET_VERSION}/eget-${EGET_VERSION}-${OS}_${ARCH_EGET}.tar.gz"
+    curl -fsSL "$EGET_URL" | tar -xz -C /tmp
+    mv "/tmp/eget-${EGET_VERSION}-${OS}_${ARCH_EGET}/eget" "$HOME/.local/bin/eget"
+    chmod +x "$HOME/.local/bin/eget"
+    rm -rf "/tmp/eget-${EGET_VERSION}-${OS}_${ARCH_EGET}"
+
+    echo "  eget v${EGET_VERSION} installed"
+}
+
+if [[ "$EGET_INSTALLED" != "$EGET_VERSION" ]]; then
+    install_eget
+else
+    echo "eget v${EGET_INSTALLED} already installed"
+fi
+
+# Ensure eget is in PATH for this script
+export PATH="$HOME/.local/bin:$PATH"
+
+# =============================================================================
+# CLI Tools via eget
+# =============================================================================
+echo ""
+echo "Installing CLI tools via eget..."
+
+install_cli_tool() {
+    local name="$1"
+    local repo="$2"
+    local version="$3"
+    local tag="${4:-v${version}}"
+    local asset_pattern="${5:-}"  # Exact asset pattern to match
+
+    local installed=$(get_version "$name")
+
+    if [[ "$installed" != "$version" ]]; then
+        echo "  Installing $name v${version}..."
+
+        if [[ -n "$asset_pattern" ]]; then
+            # Use specific asset pattern provided
+            eget "$repo" --tag "$tag" --to "$HOME/.local/bin" -q --asset "$asset_pattern" || true
+        else
+            # Auto-detect (works for most tools)
+            eget "$repo" --tag "$tag" --to "$HOME/.local/bin" -q || true
+        fi
+    else
+        echo "  $name v${installed} already installed"
+    fi
+}
+
+# Install common CLI tools
+# Args: name, repo, version, tag_format, asset_pattern
+# Use specific asset patterns to avoid interactive prompts
+
+# Architecture-specific asset patterns
+# Note: Some tools only provide musl builds (ripgrep, zoxide) - musl is statically linked and works everywhere
+if [[ "$ARCH" == "x86_64" ]]; then
+    RG_ASSET="ripgrep-{{ .tools.ripgrep.version }}-x86_64-unknown-linux-musl.tar.gz"
+    FD_ASSET="fd-v{{ .tools.fd.version }}-x86_64-unknown-linux-gnu.tar.gz"
+    BAT_ASSET="bat-v{{ .tools.bat.version }}-x86_64-unknown-linux-gnu.tar.gz"
+    EZA_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz"
+    FZF_ASSET="fzf-{{ .tools.fzf.version }}-linux_amd64.tar.gz"
+    DELTA_ASSET="delta-{{ .tools.delta.version }}-x86_64-unknown-linux-gnu.tar.gz"
+    LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_Linux_x86_64.tar.gz"
+    JQ_ASSET="jq-linux-amd64"
+    YQ_ASSET="yq_linux_amd64"
+    ZOXIDE_ASSET="zoxide-{{ .tools.zoxide.version }}-x86_64-unknown-linux-musl.tar.gz"
+    GH_ASSET="gh_{{ .tools.gh.version }}_linux_amd64.tar.gz"
+    STARSHIP_ASSET="starship-x86_64-unknown-linux-gnu.tar.gz"
+elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+    RG_ASSET="ripgrep-{{ .tools.ripgrep.version }}-aarch64-unknown-linux-gnu.tar.gz"
+    FD_ASSET="fd-v{{ .tools.fd.version }}-aarch64-unknown-linux-gnu.tar.gz"
+    BAT_ASSET="bat-v{{ .tools.bat.version }}-aarch64-unknown-linux-gnu.tar.gz"
+    EZA_ASSET="eza_aarch64-unknown-linux-gnu.tar.gz"
+    FZF_ASSET="fzf-{{ .tools.fzf.version }}-linux_arm64.tar.gz"
+    DELTA_ASSET="delta-{{ .tools.delta.version }}-aarch64-unknown-linux-gnu.tar.gz"
+    LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_Linux_arm64.tar.gz"
+    JQ_ASSET="jq-linux-arm64"
+    YQ_ASSET="yq_linux_arm64"
+    ZOXIDE_ASSET="zoxide-{{ .tools.zoxide.version }}-aarch64-unknown-linux-musl.tar.gz"
+    GH_ASSET="gh_{{ .tools.gh.version }}_linux_arm64.tar.gz"
+    STARSHIP_ASSET="starship-aarch64-unknown-linux-gnu.tar.gz"
+fi
+
+install_cli_tool "rg" "{{ .tools.ripgrep.repo }}" "{{ .tools.ripgrep.version }}" "{{ .tools.ripgrep.version }}" "$RG_ASSET"
+install_cli_tool "fd" "{{ .tools.fd.repo }}" "{{ .tools.fd.version }}" "v{{ .tools.fd.version }}" "$FD_ASSET"
+install_cli_tool "bat" "{{ .tools.bat.repo }}" "{{ .tools.bat.version }}" "v{{ .tools.bat.version }}" "$BAT_ASSET"
+install_cli_tool "eza" "{{ .tools.eza.repo }}" "{{ .tools.eza.version }}" "v{{ .tools.eza.version }}" "$EZA_ASSET"
+install_cli_tool "fzf" "{{ .tools.fzf.repo }}" "{{ .tools.fzf.version }}" "v{{ .tools.fzf.version }}" "$FZF_ASSET"
+install_cli_tool "delta" "{{ .tools.delta.repo }}" "{{ .tools.delta.version }}" "{{ .tools.delta.version }}" "$DELTA_ASSET"
+install_cli_tool "lazygit" "{{ .tools.lazygit.repo }}" "{{ .tools.lazygit.version }}" "v{{ .tools.lazygit.version }}" "$LAZYGIT_ASSET"
+install_cli_tool "jq" "{{ .tools.jq.repo }}" "{{ .tools.jq.version }}" "jq-{{ .tools.jq.version }}" "$JQ_ASSET"
+install_cli_tool "yq" "{{ .tools.yq.repo }}" "{{ .tools.yq.version }}" "v{{ .tools.yq.version }}" "$YQ_ASSET"
+install_cli_tool "zoxide" "{{ .tools.zoxide.repo }}" "{{ .tools.zoxide.version }}" "v{{ .tools.zoxide.version }}" "$ZOXIDE_ASSET"
+install_cli_tool "gh" "{{ .tools.gh.repo }}" "{{ .tools.gh.version }}" "v{{ .tools.gh.version }}" "$GH_ASSET"
+
+# Additional dev tools
+if [[ "$ARCH" == "x86_64" ]]; then
+    BUF_ASSET="buf-Linux-x86_64"
+    VHS_ASSET="vhs_{{ .tools.vhs.version }}_Linux_x86_64.tar.gz"
+    CILIUM_ASSET="cilium-linux-amd64.tar.gz"
+elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+    BUF_ASSET="buf-Linux-aarch64"
+    VHS_ASSET="vhs_{{ .tools.vhs.version }}_Linux_arm64.tar.gz"
+    CILIUM_ASSET="cilium-linux-arm64.tar.gz"
+fi
+
+install_cli_tool "buf" "{{ .tools.buf.repo }}" "{{ .tools.buf.version }}" "v{{ .tools.buf.version }}" "$BUF_ASSET"
+install_cli_tool "vhs" "{{ .tools.vhs.repo }}" "{{ .tools.vhs.version }}" "v{{ .tools.vhs.version }}" "$VHS_ASSET"
+install_cli_tool "cilium" "{{ .tools.cilium_cli.repo }}" "{{ .tools.cilium_cli.version }}" "v{{ .tools.cilium_cli.version }}" "$CILIUM_ASSET"
+
+{{- if .features.starship }}
+install_cli_tool "starship" "{{ .tools.starship.repo }}" "{{ .tools.starship.version }}" "v{{ .tools.starship.version }}" "$STARSHIP_ASSET"
+{{- end }}
+
+{{- if .features.nodejs }}
+# =============================================================================
+# fnm - Fast Node Manager
+# =============================================================================
+echo ""
+FNM_VERSION="{{ .tools.fnm.version }}"
+FNM_INSTALLED=$(get_version fnm)
+
+if [[ "$FNM_INSTALLED" != "$FNM_VERSION" ]]; then
+    echo "Installing fnm v${FNM_VERSION}..."
+    eget "Schniz/fnm" --tag "v${FNM_VERSION}" --to "$HOME/.local/bin" -q
+    echo "  fnm v${FNM_VERSION} installed"
+else
+    echo "fnm v${FNM_INSTALLED} already installed"
+fi
+
+# =============================================================================
+# Bun - JavaScript runtime & package manager
+# =============================================================================
+BUN_VERSION="{{ .tools.bun.version }}"
+BUN_INSTALLED=$(get_version bun)
+
+if [[ "$BUN_INSTALLED" != "$BUN_VERSION" ]]; then
+    echo "Installing bun v${BUN_VERSION}..."
+    export BUN_INSTALL="$HOME/.bun"
+    mkdir -p "$BUN_INSTALL/bin"
+    curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" >/dev/null 2>&1
+    echo "  bun v${BUN_VERSION} installed"
+else
+    echo "bun v${BUN_INSTALLED} already installed"
+fi
+
+# Ensure bun is in PATH for installing global packages
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# =============================================================================
+# AI Coding Assistants (via bun)
+# =============================================================================
+echo ""
+echo "Installing AI coding assistants..."
+
+install_npm_global() {
+    local package="$1"
+    local cmd_name="$2"
+
+    if command -v "$cmd_name" >/dev/null 2>&1; then
+        echo "  $cmd_name already installed"
+    else
+        echo "  Installing $package..."
+        bun install -g "$package" 2>/dev/null && \
+            echo "    $cmd_name installed" || echo "    Failed to install $package"
+    fi
+}
+
+# Claude Code - Anthropic's AI coding assistant
+install_npm_global "{{ .tools.claude_code.package }}" "claude"
+
+# Gemini CLI - Google's AI coding assistant
+install_npm_global "{{ .tools.gemini_cli.package }}" "gemini"
+
+# Codex - OpenAI's AI coding assistant
+install_npm_global "{{ .tools.codex.package }}" "codex"
+{{- end }}
+
+{{- if .features.python }}
+# =============================================================================
+# uv - Fast Python package manager
+# =============================================================================
+echo ""
+UV_VERSION="{{ .tools.uv.version }}"
+UV_INSTALLED=$(get_version uv "--version")
+
+if [[ "$UV_INSTALLED" != "$UV_VERSION" ]]; then
+    echo "Installing uv v${UV_VERSION}..."
+    curl -fsSL https://astral.sh/uv/install.sh | env UV_VERSION="${UV_VERSION}" sh >/dev/null 2>&1
+    echo "  uv v${UV_VERSION} installed"
+else
+    echo "uv v${UV_INSTALLED} already installed"
+fi
+{{- end }}
+
+{{- if .features.golang }}
+# =============================================================================
+# Go - Go toolchain (user-space installation)
+# =============================================================================
+echo ""
+GO_VERSION="{{ .tools.go.version }}"
+GO_INSTALLED=$("$HOME/.local/go/bin/go" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo "not-installed")
+
+if [[ "$GO_INSTALLED" != "$GO_VERSION" ]]; then
+    echo "Installing Go v${GO_VERSION}..."
+    GO_TARBALL="go${GO_VERSION}.${OS}-${ARCH_GO}.tar.gz"
+    curl -fsSL "https://go.dev/dl/${GO_TARBALL}" -o "/tmp/${GO_TARBALL}"
+    rm -rf "$HOME/.local/go"
+    tar -C "$HOME/.local" -xzf "/tmp/${GO_TARBALL}"
+    rm "/tmp/${GO_TARBALL}"
+    echo "  Go v${GO_VERSION} installed to ~/.local/go"
+else
+    echo "Go v${GO_INSTALLED} already installed"
+fi
+
+# Ensure Go is in PATH for installing Go tools
+export GOROOT="$HOME/.local/go"
+export GOPATH="${GOPATH:-$HOME/go}"
+export GOBIN="$HOME/.local/bin"
+export PATH="$GOROOT/bin:$GOBIN:$PATH"
+
+# =============================================================================
+# Go Development Tools (via go install)
+# =============================================================================
+echo ""
+echo "Installing Go development tools..."
+
+install_go_tool() {
+    local cmd_name="$1"
+    local package="$2"
+    local version="${3:-latest}"
+
+    if command -v "$cmd_name" >/dev/null 2>&1; then
+        echo "  $cmd_name already installed"
+    else
+        echo "  Installing $cmd_name..."
+        go install "${package}@${version}" 2>/dev/null && \
+            echo "    $cmd_name installed" || echo "    Failed to install $cmd_name"
+    fi
+}
+
+# Linters and static analysis
+install_go_tool "golangci-lint" "{{ .tools.go_tools.golangci_lint.package }}" "{{ .tools.go_tools.golangci_lint.version }}"
+install_go_tool "goimports" "{{ .tools.go_tools.goimports.package }}" "{{ .tools.go_tools.goimports.version }}"
+install_go_tool "staticcheck" "{{ .tools.go_tools.staticcheck.package }}" "{{ .tools.go_tools.staticcheck.version }}"
+install_go_tool "gosec" "{{ .tools.go_tools.gosec.package }}" "{{ .tools.go_tools.gosec.version }}"
+install_go_tool "revive" "{{ .tools.go_tools.revive.package }}" "{{ .tools.go_tools.revive.version }}"
+install_go_tool "gocyclo" "{{ .tools.go_tools.gocyclo.package }}" "{{ .tools.go_tools.gocyclo.version }}"
+install_go_tool "ineffassign" "{{ .tools.go_tools.ineffassign.package }}" "{{ .tools.go_tools.ineffassign.version }}"
+install_go_tool "unconvert" "{{ .tools.go_tools.unconvert.package }}" "{{ .tools.go_tools.unconvert.version }}"
+install_go_tool "misspell" "{{ .tools.go_tools.misspell.package }}" "{{ .tools.go_tools.misspell.version }}"
+
+# Testing and mocking
+install_go_tool "mockgen" "{{ .tools.go_tools.mockgen.package }}" "{{ .tools.go_tools.mockgen.version }}"
+install_go_tool "mockery" "{{ .tools.go_tools.mockery.package }}" "{{ .tools.go_tools.mockery.version }}"
+install_go_tool "ginkgo" "{{ .tools.go_tools.ginkgo.package }}" "{{ .tools.go_tools.ginkgo.version }}"
+
+# Code generation
+install_go_tool "sqlc" "{{ .tools.go_tools.sqlc.package }}" "{{ .tools.go_tools.sqlc.version }}"
+install_go_tool "gqlgen" "{{ .tools.go_tools.gqlgen.package }}" "{{ .tools.go_tools.gqlgen.version }}"
+install_go_tool "goverter" "{{ .tools.go_tools.goverter.package }}" "{{ .tools.go_tools.goverter.version }}"
+install_go_tool "oapi-codegen" "{{ .tools.go_tools.oapi_codegen.package }}" "{{ .tools.go_tools.oapi_codegen.version }}"
+install_go_tool "controller-gen" "{{ .tools.go_tools.controller_gen.package }}" "{{ .tools.go_tools.controller_gen.version }}"
+
+# Release automation
+install_go_tool "goreleaser" "{{ .tools.go_tools.goreleaser.package }}" "{{ .tools.go_tools.goreleaser.version }}"
+
+# =============================================================================
+# Protobuf Tools (via go install)
+# =============================================================================
+echo ""
+echo "Installing Protobuf tools..."
+
+install_go_tool "protoc-gen-go" "{{ .tools.protobuf_tools.protoc_gen_go.package }}" "{{ .tools.protobuf_tools.protoc_gen_go.version }}"
+install_go_tool "protoc-gen-go-grpc" "{{ .tools.protobuf_tools.protoc_gen_go_grpc.package }}" "{{ .tools.protobuf_tools.protoc_gen_go_grpc.version }}"
+install_go_tool "protoc-gen-grpc-gateway" "{{ .tools.protobuf_tools.protoc_gen_grpc_gateway.package }}" "{{ .tools.protobuf_tools.protoc_gen_grpc_gateway.version }}"
+install_go_tool "protoc-gen-openapiv2" "{{ .tools.protobuf_tools.protoc_gen_openapiv2.package }}" "{{ .tools.protobuf_tools.protoc_gen_openapiv2.version }}"
+install_go_tool "protoc-gen-doc" "{{ .tools.protobuf_tools.protoc_gen_doc.package }}" "{{ .tools.protobuf_tools.protoc_gen_doc.version }}"
+{{- end }}
+
+# =============================================================================
+# Rust toolchain via rustup
+# =============================================================================
+echo ""
+if ! command -v rustup >/dev/null 2>&1; then
+    echo "Installing rustup..."
+    export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.local/share/rustup}"
+    export CARGO_HOME="${CARGO_HOME:-$HOME/.local/share/cargo}"
+    mkdir -p "$RUSTUP_HOME" "$CARGO_HOME"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --default-toolchain stable >/dev/null 2>&1
+    source "$CARGO_HOME/env"
+    rustup component add rustfmt clippy rust-analyzer 2>/dev/null || true
+    echo "  rustup installed (stable toolchain)"
+else
+    echo "rustup already installed"
+    rustup update stable >/dev/null 2>&1 || true
+fi
+
+{{- if .features.ruby }}
+# =============================================================================
+# rbenv - Ruby version manager
+# =============================================================================
+echo ""
+RBENV_VERSION="{{ .tools.rbenv.version }}"
+RBENV_ROOT="$HOME/.rbenv"
+
+if [[ ! -d "$RBENV_ROOT" ]]; then
+    echo "Installing rbenv v${RBENV_VERSION}..."
+    git clone https://github.com/rbenv/rbenv.git "$RBENV_ROOT" --branch "v${RBENV_VERSION}" --depth 1 2>/dev/null
+
+    # Install ruby-build plugin
+    mkdir -p "$RBENV_ROOT/plugins"
+    git clone https://github.com/rbenv/ruby-build.git "$RBENV_ROOT/plugins/ruby-build" --depth 1 2>/dev/null
+
+    echo "  rbenv v${RBENV_VERSION} installed to ~/.rbenv"
+else
+    echo "rbenv already installed at ~/.rbenv"
+    # Update ruby-build for latest Ruby versions
+    if [[ -d "$RBENV_ROOT/plugins/ruby-build" ]]; then
+        (cd "$RBENV_ROOT/plugins/ruby-build" && git pull -q 2>/dev/null) || true
+    fi
+fi
+{{- end }}
+
+{{- if .features.java }}
+# =============================================================================
+# SDKMAN - JVM ecosystem manager
+# =============================================================================
+echo ""
+SDKMAN_DIR="$HOME/.sdkman"
+
+if [[ ! -d "$SDKMAN_DIR" ]]; then
+    echo "Installing SDKMAN..."
+    curl -fsSL "https://get.sdkman.io?rcupdate=false" | bash >/dev/null 2>&1
+    echo "  SDKMAN installed to ~/.sdkman"
+    echo "  Run 'source ~/.sdkman/bin/sdkman-init.sh' to start using it"
+else
+    echo "SDKMAN already installed at ~/.sdkman"
+fi
+{{- end }}
+
+{{- if .features.compilers }}
+# =============================================================================
+# Spack - Package manager for compilers
+# =============================================================================
+echo ""
+SPACK_VERSION="{{ .tools.spack.version }}"
+SPACK_ROOT="$HOME/.local/spack"
+
+if [[ ! -d "$SPACK_ROOT" ]]; then
+    echo "Installing Spack v${SPACK_VERSION}..."
+    git clone https://github.com/spack/spack.git "$SPACK_ROOT" --branch "v${SPACK_VERSION}" --depth 1 2>/dev/null
+    echo "  Spack v${SPACK_VERSION} installed to ~/.local/spack"
+    echo ""
+    echo "  To use Spack, run: source ~/.local/spack/share/spack/setup-env.sh"
+    echo "  Then install compilers with: spack install gcc@13"
+else
+    echo "Spack already installed at ~/.local/spack"
+fi
+{{- end }}
+
+# =============================================================================
+# ZSH Plugins
+# =============================================================================
+echo ""
+echo "Installing ZSH plugins..."
+ZSH_PLUGINS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zsh/plugins"
+mkdir -p "$ZSH_PLUGINS_DIR"
+
+install_zsh_plugin() {
+    local repo="$1"
+    local plugin_name="${repo##*/}"
+    local plugin_dir="$ZSH_PLUGINS_DIR/$plugin_name"
+
+    if [[ -d "$plugin_dir" ]]; then
+        echo "  $plugin_name already installed"
+    else
+        echo "  Installing $plugin_name..."
+        git clone --depth=1 "https://github.com/$repo.git" "$plugin_dir" 2>/dev/null && \
+            echo "    $plugin_name installed" || echo "    Failed to install $plugin_name"
+    fi
+}
+
+install_zsh_plugin "zsh-users/zsh-syntax-highlighting"
+install_zsh_plugin "zsh-users/zsh-autosuggestions"
+install_zsh_plugin "zsh-users/zsh-completions"
+
+{{- if .features.fonts }}
+# =============================================================================
+# Nerd Fonts - Patched fonts with icons
+# =============================================================================
+echo ""
+NERD_FONTS_VERSION="{{ .tools.nerd_fonts.version }}"
+
+# Determine font directory based on OS
+case "$OS" in
+    darwin)
+        FONT_DIR="$HOME/Library/Fonts"
+        ;;
+    *)
+        FONT_DIR="$HOME/.local/share/fonts/NerdFonts"
+        ;;
+esac
+
+mkdir -p "$FONT_DIR"
+
+install_nerd_font() {
+    local font_name="$1"
+    local marker_file="$FONT_DIR/.${font_name}-${NERD_FONTS_VERSION}"
+
+    if [[ -f "$marker_file" ]]; then
+        echo "  $font_name Nerd Font v${NERD_FONTS_VERSION} already installed"
+        return
+    fi
+
+    echo "  Installing $font_name Nerd Font v${NERD_FONTS_VERSION}..."
+    local font_url="https://github.com/ryanoasis/nerd-fonts/releases/download/v${NERD_FONTS_VERSION}/${font_name}.zip"
+    local tmp_zip="/tmp/${font_name}.zip"
+
+    if curl -fsSL "$font_url" -o "$tmp_zip" 2>/dev/null; then
+        unzip -o -q "$tmp_zip" -d "$FONT_DIR" 2>/dev/null || true
+        rm -f "$tmp_zip"
+        # Remove Windows-specific fonts and license files from font dir
+        rm -f "$FONT_DIR"/*Windows*.ttf "$FONT_DIR"/*.md "$FONT_DIR"/*.txt 2>/dev/null || true
+        touch "$marker_file"
+        echo "    $font_name installed"
+    else
+        echo "    Failed to download $font_name"
+    fi
+}
+
+echo "Installing Nerd Fonts..."
+{{- range .tools.nerd_fonts.fonts }}
+install_nerd_font "{{ . }}"
+{{- end }}
+
+# Refresh font cache on Linux
+if [[ "$OS" != "darwin" ]] && command -v fc-cache >/dev/null 2>&1; then
+    echo "  Refreshing font cache..."
+    fc-cache -f "$FONT_DIR" 2>/dev/null || true
+fi
+{{- end }}
+
+# =============================================================================
+# Terminal Emulators (user-space installation)
+# =============================================================================
+echo ""
+echo "Installing terminal emulators..."
+
+# -----------------------------------------------------------------------------
+# Zig (needed for building Ghostty)
+# -----------------------------------------------------------------------------
+ZIG_VERSION="{{ .tools.zig.version }}"
+ZIG_DIR="$HOME/.local/zig"
+ZIG_INSTALLED=$("$ZIG_DIR/zig" version 2>/dev/null || echo "not-installed")
+
+if [[ "$ZIG_INSTALLED" != "$ZIG_VERSION" ]]; then
+    echo "  Installing Zig v${ZIG_VERSION}..."
+
+    # Determine architecture
+    if [[ "$ARCH" == "x86_64" ]]; then
+        ZIG_ARCH="x86_64"
+    elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        ZIG_ARCH="aarch64"
+    fi
+
+    ZIG_URL="https://ziglang.org/download/${ZIG_VERSION}/zig-${OS}-${ZIG_ARCH}-${ZIG_VERSION}.tar.xz"
+    ZIG_TMP="/tmp/zig-${ZIG_VERSION}.tar.xz"
+
+    if curl -fsSL "$ZIG_URL" -o "$ZIG_TMP" 2>/dev/null; then
+        rm -rf "$ZIG_DIR"
+        mkdir -p "$ZIG_DIR"
+        tar -xJf "$ZIG_TMP" -C "$ZIG_DIR" --strip-components=1
+        rm -f "$ZIG_TMP"
+        echo "    Zig v${ZIG_VERSION} installed to ~/.local/zig"
+    else
+        echo "    Failed to download Zig"
+    fi
+else
+    echo "  Zig v${ZIG_INSTALLED} already installed"
+fi
+
+export PATH="$ZIG_DIR:$PATH"
+
+# -----------------------------------------------------------------------------
+# Kitty (via official installer)
+# -----------------------------------------------------------------------------
+KITTY_VERSION="{{ .tools.kitty.version }}"
+KITTY_INSTALLED=$(~/.local/kitty.app/bin/kitty --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "not-installed")
+
+if [[ "$KITTY_INSTALLED" != "$KITTY_VERSION" ]]; then
+    echo "  Installing Kitty v${KITTY_VERSION}..."
+    curl -fsSL https://sw.kovidgoyal.net/kitty/installer.sh 2>/dev/null | sh /dev/stdin dest=~/.local launch=n >/dev/null 2>&1 && \
+        echo "    Kitty installed to ~/.local/kitty.app" || echo "    Failed to install Kitty"
+
+    # Create symlinks
+    mkdir -p ~/.local/bin
+    ln -sf ~/.local/kitty.app/bin/kitty ~/.local/bin/kitty 2>/dev/null || true
+    ln -sf ~/.local/kitty.app/bin/kitten ~/.local/bin/kitten 2>/dev/null || true
+else
+    echo "  Kitty v${KITTY_INSTALLED} already installed"
+fi
+
+# -----------------------------------------------------------------------------
+# Alacritty (via cargo)
+# Requires system deps: cmake pkg-config libfreetype6-dev libfontconfig1-dev
+#                       libxcb-xfixes0-dev libxkbcommon-dev python3
+# Ubuntu/Debian: apt install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev python3
+# Fedora: dnf install cmake freetype-devel fontconfig-devel libxcb-devel libxkbcommon-devel python3
+# -----------------------------------------------------------------------------
+ALACRITTY_VERSION="{{ .tools.alacritty.version }}"
+ALACRITTY_INSTALLED=$(alacritty --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "not-installed")
+
+if [[ "$ALACRITTY_INSTALLED" != "$ALACRITTY_VERSION" ]]; then
+    # Ensure cargo is in PATH
+    source "${CARGO_HOME:-$HOME/.local/share/cargo}/env" 2>/dev/null || true
+
+    # Check for required system dependencies
+    if ! pkg-config --exists freetype2 fontconfig 2>/dev/null; then
+        echo "  Skipping Alacritty (missing system deps: freetype, fontconfig)"
+        echo "    Install with: apt install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev"
+    elif command -v cargo >/dev/null 2>&1; then
+        echo "  Installing Alacritty v${ALACRITTY_VERSION} (this may take several minutes)..."
+        cargo install alacritty --version "${ALACRITTY_VERSION}" --locked 2>/dev/null && \
+            echo "    Alacritty v${ALACRITTY_VERSION} installed" || \
+            echo "    Failed to install Alacritty"
+    else
+        echo "  Skipping Alacritty (cargo not available)"
+    fi
+else
+    echo "  Alacritty v${ALACRITTY_INSTALLED} already installed"
+fi
+
+# -----------------------------------------------------------------------------
+# Ghostty (build from source with Zig)
+# Requires system deps: GTK4, libadwaita, and various graphics libraries
+# Ubuntu/Debian: apt install libgtk-4-dev libadwaita-1-dev git
+# Fedora: dnf install gtk4-devel libadwaita-devel
+# Note: Ghostty is a GUI application and requires a display server
+# -----------------------------------------------------------------------------
+GHOSTTY_VERSION="{{ .tools.ghostty.version }}"
+GHOSTTY_INSTALLED=$("$HOME/.local/bin/ghostty" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "not-installed")
+
+if [[ "$GHOSTTY_INSTALLED" != "$GHOSTTY_VERSION" ]]; then
+    # Check for required system dependencies
+    if ! pkg-config --exists gtk4 2>/dev/null; then
+        echo "  Skipping Ghostty (missing system deps: gtk4)"
+        echo "    Install with: apt install libgtk-4-dev libadwaita-1-dev"
+    elif command -v zig >/dev/null 2>&1 || [[ -x "$ZIG_DIR/zig" ]]; then
+        echo "  Building Ghostty v${GHOSTTY_VERSION} from source (this may take several minutes)..."
+        GHOSTTY_SRC="/tmp/ghostty-src"
+        rm -rf "$GHOSTTY_SRC"
+
+        if git clone --depth=1 --branch "v${GHOSTTY_VERSION}" "https://github.com/{{ .tools.ghostty.repo }}.git" "$GHOSTTY_SRC" 2>/dev/null; then
+            cd "$GHOSTTY_SRC"
+
+            # Build Ghostty
+            PATH="$ZIG_DIR:$PATH" zig build -Doptimize=ReleaseFast 2>/dev/null && {
+                mkdir -p "$HOME/.local/bin"
+                cp zig-out/bin/ghostty "$HOME/.local/bin/ghostty"
+                echo "    Ghostty v${GHOSTTY_VERSION} installed"
+            } || echo "    Failed to build Ghostty (check build deps)"
+
+            cd - >/dev/null
+            rm -rf "$GHOSTTY_SRC"
+        else
+            echo "    Failed to clone Ghostty repository"
+        fi
+    else
+        echo "  Skipping Ghostty (zig not available)"
+    fi
+else
+    echo "  Ghostty v${GHOSTTY_INSTALLED} already installed"
+fi
+
+# =============================================================================
+# Summary
+# =============================================================================
+echo ""
+echo "========================================="
+echo "User-space tool installation complete!"
+echo "========================================="
+echo ""
+echo "Installed tools:"
+echo "  Core CLI tools (via eget): ~/.local/bin/"
+echo "    - rg, fd, bat, eza, fzf, delta, lazygit, jq, yq, zoxide, gh"
+echo "    - buf, vhs, cilium"
+{{- if .features.starship }}
+echo "    - starship"
+{{- end }}
+{{- if .features.nodejs }}
+echo "  Node.js: fnm (~/.local/bin/fnm), bun (~/.bun/bin/bun)"
+echo "  AI assistants: claude, gemini, codex"
+{{- end }}
+{{- if .features.python }}
+echo "  Python: uv (~/.local/bin/uv)"
+{{- end }}
+{{- if .features.golang }}
+echo "  Go: ~/.local/go/bin/go"
+echo "  Go tools: golangci-lint, goimports, staticcheck, gosec, revive, mockgen, mockery"
+echo "            ginkgo, sqlc, gqlgen, goverter, oapi-codegen, controller-gen, goreleaser"
+echo "  Protobuf: protoc-gen-go, protoc-gen-go-grpc, protoc-gen-grpc-gateway"
+echo "            protoc-gen-openapiv2, protoc-gen-doc"
+{{- end }}
+echo "  Rust: rustup (~/.local/share/rustup), cargo (~/.local/share/cargo)"
+{{- if .features.ruby }}
+echo "  Ruby: rbenv (~/.rbenv)"
+{{- end }}
+{{- if .features.java }}
+echo "  Java/JVM: SDKMAN (~/.sdkman)"
+{{- end }}
+{{- if .features.compilers }}
+echo "  Compilers: Spack (~/.local/spack)"
+{{- end }}
+echo "  ZSH plugins: syntax-highlighting, autosuggestions, completions"
+{{- if .features.fonts }}
+echo "  Fonts: Nerd Fonts (JetBrainsMono, FiraCode, Hack)"
+{{- end }}
+echo "  Terminals: kitty (~/.local/kitty.app), alacritty, ghostty"
+echo "  Build tools: zig (~/.local/zig)"
+echo ""
+echo "Restart your shell or run 'source ~/.bashrc' / 'source ~/.zshrc' to update PATH"

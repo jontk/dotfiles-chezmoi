@@ -1,28 +1,31 @@
 # Shared shell aliases
 # This file is sourced by both bash and zsh
 
-# Core utilities
+# Core utilities - safe enhancements only
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
-alias mkdir='mkdir -pv'
-alias cp='cp -i'
-alias mv='mv -i'
-alias rm='rm -i'
 alias df='df -h'
 alias du='du -h'
 alias free='free -h'
-alias ps='ps aux'
-alias top='top -o cpu'
+
+# Explicit aliases for common flags (don't override defaults)
+alias mkdirp='mkdir -pv'
+alias cpi='cp -i'
+alias mvi='mv -i'
+alias rmi='rm -i'
+alias psa='ps aux'
 
 # Platform-specific aliases
 case "$(uname -s)" in
     Darwin*)
         # macOS specific
         alias ls='ls -G'
+        alias localip='ipconfig getifaddr en0'
+        alias ports='lsof -iTCP -sTCP:LISTEN -n -P'
         alias updatedb='sudo /usr/libexec/locate.updatedb'
         alias flushdns='sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder'
         alias showfiles='defaults write com.apple.finder AppleShowAllFiles YES && killall Finder'
@@ -31,8 +34,16 @@ case "$(uname -s)" in
     Linux*)
         # Linux specific
         alias ls='ls --color=auto'
-        alias pbcopy='xclip -selection clipboard'
-        alias pbpaste='xclip -selection clipboard -o'
+        alias localip='hostname -I | awk "{print \$1}"'
+        alias ports='ss -tulanp'
+        # Clipboard - Wayland or X11
+        if [[ -n "$WAYLAND_DISPLAY" ]]; then
+            alias pbcopy='wl-copy'
+            alias pbpaste='wl-paste'
+        else
+            alias pbcopy='xclip -selection clipboard'
+            alias pbpaste='xclip -selection clipboard -o'
+        fi
         ;;
 esac
 
@@ -45,33 +56,21 @@ alias -- -='cd -'
 
 # Git aliases (if git is available)
 if command -v git >/dev/null 2>&1; then
-    alias gs='git status'
+    alias gst='git status'
     alias ga='git add'
-    alias gc='git commit'
+    alias gcm='git commit'
     alias gp='git push'
-    alias gl='git log --oneline --graph --decorate'
+    alias glog='git log --oneline --graph --decorate'
     alias gd='git diff'
     alias gb='git branch'
     alias gco='git checkout'
+    alias gsw='git switch'
+    alias grs='git restore'
 fi
 
-# Docker aliases (if docker is available)
-if command -v docker >/dev/null 2>&1; then
-    alias dps='docker ps'
-    alias dpa='docker ps -a'
-    alias di='docker images'
-    alias dex='docker exec -it'
-    alias dlog='docker logs'
-fi
+# Docker aliases loaded from ~/.config/docker/aliases.sh
 
-# Network and system aliases
-alias ports='netstat -tulanp'
+# Network aliases (ports and localip defined in platform-specific section above)
 alias myip='curl -s ifconfig.me'
-alias localip='hostname -I | awk "{print \$1}"'
-alias ping='ping -c 5'
-alias wget='wget -c'
-
-# Function-based aliases
-alias extract='_extract'
-alias backup='_backup'
-alias search='_search'
+alias ping5='ping -c 5'
+alias wgetc='wget -c'

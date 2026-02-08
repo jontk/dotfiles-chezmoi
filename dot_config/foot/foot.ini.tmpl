@@ -1,0 +1,56 @@
+# Foot terminal configuration
+# Managed by chezmoi - Profile: {{ .profile }}
+
+[main]
+shell=/bin/zsh
+term=xterm-256color
+{{- if eq .profile "experimental" }}
+font=JetBrainsMono Nerd Font:size=14
+{{- else }}
+font=JetBrainsMono Nerd Font:size=12
+{{- end }}
+pad=5x5
+
+[scrollback]
+lines=10000
+
+[cursor]
+style=block
+blink=no
+
+[mouse]
+hide-when-typing=yes
+
+[colors]
+# Dracula theme
+alpha=0.95
+background=282a36
+foreground=f8f8f2
+
+## Normal colors
+regular0=000000  # black
+regular1=ff5555  # red
+regular2=50fa7b  # green
+regular3=f1fa8c  # yellow
+regular4=bd93f9  # blue
+regular5=ff79c6  # magenta
+regular6=8be9fd  # cyan
+regular7=bfbfbf  # white
+
+## Bright colors
+bright0=4d4d4d   # bright black
+bright1=ff6e67   # bright red
+bright2=5af78e   # bright green
+bright3=f4f99d   # bright yellow
+bright4=caa9fa   # bright blue
+bright5=ff92d0   # bright magenta
+bright6=9aedfe   # bright cyan
+bright7=e6e6e6   # bright white
+
+[key-bindings]
+clipboard-copy=Control+Shift+c
+clipboard-paste=Control+Shift+v
+font-increase=Control+plus
+font-decrease=Control+minus
+font-reset=Control+0
+spawn-terminal=Control+Shift+n

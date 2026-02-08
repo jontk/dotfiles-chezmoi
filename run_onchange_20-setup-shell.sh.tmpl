@@ -53,31 +53,21 @@ fi
 {{- end }}
 
 {{- if .features.nodejs }}
-# Install NVM if not present
-if [[ ! -d ~/.nvm ]]; then
-    if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
-        echo "Installing NVM (Node Version Manager)..."
-        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
-        nvm install --lts
-    else
-        echo "Skipping NVM install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
+# Node.js: fnm is installed via user-space tools (run_onchange_15-install-user-tools.sh)
+# Install a default Node.js version if fnm is available and no version installed
+if command -v fnm >/dev/null 2>&1; then
+    if ! fnm list 2>/dev/null | grep -q "v"; then
+        echo "Installing Node.js LTS via fnm..."
+        fnm install --lts || true
     fi
 fi
 {{- end }}
 
 {{- if .features.python }}
-# Install pyenv if not present
-if [[ ! -d ~/.pyenv ]] && command -v pyenv >/dev/null 2>&1; then
-    echo "Pyenv is already installed via package manager"
-elif [[ ! -d ~/.pyenv ]]; then
-    if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
-        echo "Installing pyenv..."
-        curl -fsSL https://pyenv.run | bash
-    else
-        echo "Skipping pyenv install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
-    fi
+# Python: uv is installed via user-space tools (run_onchange_15-install-user-tools.sh)
+# uv can manage Python versions - no need for pyenv
+if command -v uv >/dev/null 2>&1; then
+    echo "Python version management available via 'uv python install <version>'"
 fi
 {{- end }}
 

@@ -1,0 +1,169 @@
+# Ghostty Terminal Configuration
+# Managed by chezmoi - Profile: {{ .profile }}
+
+# =============================================================================
+# Font
+# =============================================================================
+{{- if .features.fonts }}
+font-family = JetBrainsMono Nerd Font
+font-family-bold = JetBrainsMono Nerd Font Bold
+font-family-italic = JetBrainsMono Nerd Font Italic
+font-family-bold-italic = JetBrainsMono Nerd Font Bold Italic
+{{- else }}
+font-family = monospace
+{{- end }}
+
+{{- if eq .profile "experimental" }}
+font-size = 14
+{{- else }}
+font-size = 12
+{{- end }}
+
+# =============================================================================
+# Window
+# =============================================================================
+window-padding-x = 5
+window-padding-y = 5
+{{- if eq .chezmoi.os "darwin" }}
+window-decoration = false
+{{- else }}
+window-decoration = true
+{{- end }}
+background-opacity = 0.95
+
+# Initial window size (columns x lines)
+# window-width = 120
+# window-height = 40
+
+# =============================================================================
+# Cursor
+# =============================================================================
+cursor-style = block
+cursor-style-blink = false
+
+# =============================================================================
+# Mouse
+# =============================================================================
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+
+# =============================================================================
+# Scrollback
+# =============================================================================
+scrollback-limit = 10000
+
+# =============================================================================
+# Shell Integration
+# =============================================================================
+shell-integration = detect
+
+# =============================================================================
+# Clipboard
+# =============================================================================
+clipboard-read = allow
+clipboard-write = allow
+clipboard-paste-protection = true
+
+# =============================================================================
+# Colors (Dracula)
+# =============================================================================
+background = 282a36
+foreground = f8f8f2
+
+# Selection
+selection-background = 44475a
+selection-foreground = ffffff
+
+# Normal colors
+palette = 0=#000000
+palette = 1=#ff5555
+palette = 2=#50fa7b
+palette = 3=#f1fa8c
+palette = 4=#bd93f9
+palette = 5=#ff79c6
+palette = 6=#8be9fd
+palette = 7=#bfbfbf
+
+# Bright colors
+palette = 8=#4d4d4d
+palette = 9=#ff6e67
+palette = 10=#5af78e
+palette = 11=#f4f99d
+palette = 12=#caa9fa
+palette = 13=#ff92d0
+palette = 14=#9aedfe
+palette = 15=#e6e6e6
+
+# =============================================================================
+# Keybindings
+# =============================================================================
+{{- if eq .chezmoi.os "darwin" }}
+# macOS keyboard shortcuts
+keybind = cmd+c=copy_to_clipboard
+keybind = cmd+v=paste_from_clipboard
+keybind = cmd+n=new_window
+keybind = cmd+w=close_surface
+keybind = cmd+enter=toggle_fullscreen
+
+# Font size
+keybind = cmd+plus=increase_font_size:1
+keybind = cmd+minus=decrease_font_size:1
+keybind = cmd+0=reset_font_size
+
+# Tabs
+keybind = cmd+t=new_tab
+keybind = cmd+shift+t=new_tab
+keybind = cmd+]=next_tab
+keybind = cmd+[=previous_tab
+keybind = cmd+1=goto_tab:1
+keybind = cmd+2=goto_tab:2
+keybind = cmd+3=goto_tab:3
+keybind = cmd+4=goto_tab:4
+keybind = cmd+5=goto_tab:5
+keybind = cmd+6=goto_tab:6
+keybind = cmd+7=goto_tab:7
+keybind = cmd+8=goto_tab:8
+keybind = cmd+9=goto_tab:9
+
+# Splits
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+shift+]=goto_split:next
+keybind = cmd+shift+[=goto_split:previous
+
+# macOS specific
+macos-option-as-alt = true
+{{- else }}
+# Linux keyboard shortcuts
+keybind = ctrl+shift+c=copy_to_clipboard
+keybind = ctrl+shift+v=paste_from_clipboard
+keybind = ctrl+shift+n=new_window
+keybind = ctrl+shift+w=close_surface
+keybind = ctrl+shift+enter=toggle_fullscreen
+
+# Font size
+keybind = ctrl+plus=increase_font_size:1
+keybind = ctrl+minus=decrease_font_size:1
+keybind = ctrl+0=reset_font_size
+
+# Tabs
+keybind = ctrl+shift+t=new_tab
+keybind = ctrl+shift+right=next_tab
+keybind = ctrl+shift+left=previous_tab
+keybind = ctrl+alt+1=goto_tab:1
+keybind = ctrl+alt+2=goto_tab:2
+keybind = ctrl+alt+3=goto_tab:3
+keybind = ctrl+alt+4=goto_tab:4
+keybind = ctrl+alt+5=goto_tab:5
+
+# Splits
+keybind = ctrl+shift+d=new_split:right
+keybind = ctrl+shift+]=goto_split:next
+keybind = ctrl+shift+[=goto_split:previous
+{{- end }}
+
+# Scrolling (common)
+keybind = shift+page_up=scroll_page_up
+keybind = shift+page_down=scroll_page_down
+keybind = shift+home=scroll_to_top
+keybind = shift+end=scroll_to_bottom

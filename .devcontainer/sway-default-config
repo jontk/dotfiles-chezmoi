@@ -1,0 +1,34 @@
+include /etc/sway/config.d/*
+set $mod Mod4
+set $term foot
+bindsym $mod+Return exec $term
+bindsym $mod+d exec wofi --show drun
+bindsym $mod+Shift+q kill
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+e exec swaymsg exit
+bindsym $mod+h focus left
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+l focus right
+bindsym $mod+Shift+h move left
+bindsym $mod+Shift+j move down
+bindsym $mod+Shift+k move up
+bindsym $mod+Shift+l move right
+bindsym $mod+1 workspace 1
+bindsym $mod+2 workspace 2
+bindsym $mod+3 workspace 3
+bindsym $mod+Shift+1 move container to workspace 1
+bindsym $mod+Shift+2 move container to workspace 2
+bindsym $mod+Shift+3 move container to workspace 3
+bindsym $mod+b splith
+bindsym $mod+v splitv
+bindsym $mod+f fullscreen
+bindsym $mod+Shift+space floating toggle
+output HEADLESS-1 resolution 1920x1080
+
+# Cursor theme
+seat seat0 xcursor_theme Adwaita 24
+
+# Autostart
+exec waybar
+exec foot

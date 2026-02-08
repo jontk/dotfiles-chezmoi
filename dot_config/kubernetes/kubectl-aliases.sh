@@ -86,17 +86,14 @@ alias klf='kubectl logs -f'
 alias klt='kubectl logs --tail'
 alias klp='kubectl logs -p'
 
-# Namespace management
-alias kns='kubectl config set-context --current --namespace'
-alias kgns='kubectl get namespaces'
+# Namespace management (kns defined as function below)
 alias kcns='kubectl create namespace'
 
 # Port forwarding
 alias kpf='kubectl port-forward'
 
-# Apply/Create
+# Apply/Create (kaf defined above)
 alias ka='kubectl apply'
-alias kaf='kubectl apply -f'
 alias kca='kubectl create'
 alias kcaf='kubectl create -f'
 

@@ -17,11 +17,11 @@
     [data.git]
         email = {{ $gitEmail | quote }}
         name = {{ $gitName | quote }}
-        {{- if eq $profile "work" }}
+        githubKey = ""
+        gitlabKey = ""
         workEmail = {{ $workGitEmail | quote }}
         workName = {{ $workGitName | quote }}
         workGpgKey = {{ $workGpgKey | quote }}
-        {{- end }}
 
     # Profile-specific feature flags
     {{- if eq $profile "minimal" }}
@@ -32,6 +32,10 @@
         nodejs = false
         python = false
         golang = false
+        ruby = false
+        java = false
+        compilers = false
+        fonts = false
         starship = false
         tmux = false
         beta_features = false
@@ -45,6 +49,10 @@
         nodejs = true
         python = true
         golang = true
+        ruby = false
+        java = false
+        compilers = false
+        fonts = true
         starship = true
         tmux = true
         beta_features = false
@@ -58,6 +66,10 @@
         nodejs = true
         python = true
         golang = true
+        ruby = false
+        java = true
+        compilers = false
+        fonts = true
         starship = true
         tmux = true
         work_specific = true
@@ -71,6 +83,10 @@
         nodejs = false
         python = false
         golang = false
+        ruby = false
+        java = false
+        compilers = false
+        fonts = false
         starship = false
         tmux = false
         minimal_prompt = true
@@ -85,6 +101,10 @@
         nodejs = true
         python = true
         golang = true
+        ruby = true
+        java = true
+        compilers = true
+        fonts = true
         starship = true
         tmux = true
         beta_features = true
@@ -112,3 +132,8 @@
         {{- else }}
         default = "vim"
         {{- end }}
+
+    # Work settings (empty for non-work profiles)
+    [data.work]
+        username = ""
+        sshKey = ""

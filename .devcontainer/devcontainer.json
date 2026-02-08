@@ -1,0 +1,51 @@
+{
+  "name": "Sway Dotfiles Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USERNAME": "dev",
+      "USER_UID": "1000",
+      "USER_GID": "1000"
+    }
+  },
+  "containerEnv": {
+    "WLR_BACKENDS": "headless",
+    "WLR_LIBINPUT_NO_DEVICES": "1",
+    "WAYLAND_DISPLAY": "wayland-1",
+    "MOZ_ENABLE_WAYLAND": "1",
+    "CHEZMOI_SOURCE": "/home/dev/dotfiles"
+  },
+  "forwardPorts": [6080, 5900],
+  "portsAttributes": {
+    "6080": {
+      "label": "Sway Desktop (Browser)",
+      "onAutoForward": "notify"
+    },
+    "5900": {
+      "label": "Sway Desktop (VNC)",
+      "onAutoForward": "silent"
+    }
+  },
+  "postStartCommand": "nohup /usr/local/bin/start-desktop.sh > /tmp/desktop.log 2>&1 &",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "foxundermoon.shell-format",
+        "timonwong.shellcheck"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "files.associations": {
+          "*.tmpl": "gotmpl"
+        }
+      }
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/home/dev/dotfiles,type=bind,consistency=cached"
+  ],
+  "remoteUser": "dev",
+  "workspaceFolder": "/home/dev/dotfiles"
+}

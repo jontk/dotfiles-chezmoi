@@ -26,6 +26,48 @@ export GOPATH CARGO_HOME RUSTUP_HOME NPM_CONFIG_PREFIX
 # Add development tool paths to PATH
 PATH="$GOPATH/bin:$CARGO_HOME/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
 
+{{- if .features.golang }}
+# User-space Go installation (takes precedence over system Go)
+if [ -d "$HOME/.local/go" ]; then
+    GOROOT="$HOME/.local/go"
+    export GOROOT
+    PATH="$GOROOT/bin:$PATH"
+fi
+{{- end }}
+
+{{- if .features.nodejs }}
+# Bun - JavaScript runtime & package manager
+BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export BUN_INSTALL
+PATH="$BUN_INSTALL/bin:$PATH"
+{{- end }}
+
+# Rust/Cargo - source cargo env if installed via rustup
+if [ -f "$CARGO_HOME/env" ]; then
+    . "$CARGO_HOME/env"
+fi
+
+{{- if .features.ruby }}
+# rbenv - Ruby version manager
+RBENV_ROOT="${RBENV_ROOT:-$HOME/.rbenv}"
+export RBENV_ROOT
+if [ -d "$RBENV_ROOT/bin" ]; then
+    PATH="$RBENV_ROOT/bin:$PATH"
+fi
+{{- end }}
+
+{{- if .features.java }}
+# SDKMAN - JVM ecosystem manager
+SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
+export SDKMAN_DIR
+{{- end }}
+
+{{- if .features.compilers }}
+# Spack - package manager for compilers
+SPACK_ROOT="${SPACK_ROOT:-$HOME/.local/spack}"
+export SPACK_ROOT
+{{- end }}
+
 # Editor configuration
 EDITOR="${EDITOR:-{{ .editor.default }}}"
 if ! command -v "$EDITOR" >/dev/null 2>&1; then

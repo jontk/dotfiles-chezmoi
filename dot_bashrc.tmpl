@@ -146,8 +146,11 @@ fi
 [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
 
 {{- if .features.nodejs }}
-# Node.js version manager setup - Lazy loading for performance
-if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+# fnm (Fast Node Manager) shell integration - auto-switch on cd
+if command -v fnm >/dev/null 2>&1; then
+    eval "$(fnm env --use-on-cd)"
+# Fallback to nvm if fnm not available - Lazy loading for performance
+elif [[ -s "$HOME/.nvm/nvm.sh" ]]; then
     nvm() {
         unset -f nvm node npm npx
         export NVM_DIR="$HOME/.nvm"
@@ -200,6 +203,32 @@ fi
 # Rust environment setup
 if [[ -f "$HOME/.cargo/env" ]]; then
     source "$HOME/.cargo/env"
+fi
+
+{{- if .features.ruby }}
+# rbenv shell integration
+if [[ -d "$HOME/.rbenv" ]] && command -v rbenv >/dev/null 2>&1; then
+    eval "$(rbenv init - bash)"
+fi
+{{- end }}
+
+{{- if .features.java }}
+# SDKMAN shell integration
+if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+fi
+{{- end }}
+
+{{- if .features.compilers }}
+# Spack shell integration (optional - uncomment to auto-load)
+# if [[ -f "$HOME/.local/spack/share/spack/setup-env.sh" ]]; then
+#     source "$HOME/.local/spack/share/spack/setup-env.sh"
+# fi
+{{- end }}
+
+# zoxide - smarter cd command
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init bash)"
 fi
 
 {{- if ne .profile "server" }}

@@ -39,21 +39,10 @@ fi
 
 echo "Installing Homebrew packages..."
 brew bundle --no-lock --file=/dev/stdin <<EOF
-# Core utilities
+# Core utilities (essentials - CLI tools installed via eget in user-space)
 brew "git"
-brew "fzf"
-brew "ripgrep"
-brew "fd"
-brew "bat"
-brew "eza"  # Modern replacement for exa (deprecated)
-brew "jq"
 brew "curl"
 brew "wget"
-
-{{- if .features.starship }}
-# Starship prompt
-brew "starship"
-{{- end }}
 
 {{- if .features.tmux }}
 # Tmux
@@ -69,21 +58,9 @@ brew "neovim"
 {{- end }}
 {{- end }}
 
-{{- if .features.nodejs }}
-# Node.js tools
-brew "node"
-{{- end }}
-
 {{- if .features.python }}
-# Python tools
+# Python (system Python for bootstrapping - uv handles versions)
 brew "python"
-brew "pyenv"
-{{- end }}
-
-{{- if .features.golang }}
-# Go
-brew "go"
-brew "golangci-lint"
 {{- end }}
 
 {{- if .features.docker }}
@@ -99,33 +76,25 @@ brew "helm"
 brew "kubectx"
 {{- end }}
 
-# Development tools
+# System tools (not available via eget)
 brew "tree"
 brew "htop"
 brew "watch"
-brew "tldr"
-brew "gh"
 
 EOF
 
 {{- else if eq .chezmoi.osRelease.id "fedora" }}
 # Fedora
+# Note: CLI tools (ripgrep, fd, bat, fzf, jq, etc.) installed via eget in user-space
 echo "Installing DNF packages..."
 pkgs=(
     git
-    fzf
-    ripgrep
-    fd-find
-    bat
-    jq
     curl
     wget
     tree
     htop
+    @development-tools
 )
-{{- if .features.starship }}
-pkgs+=(starship)
-{{- end }}
 {{- if .features.tmux }}
 pkgs+=(tmux)
 {{- end }}
@@ -135,14 +104,12 @@ pkgs+=(vim)
 pkgs+=(neovim)
 {{- end }}
 {{- end }}
-{{- if .features.nodejs }}
-pkgs+=(nodejs npm)
-{{- end }}
 {{- if .features.python }}
 pkgs+=(python3 python3-pip python3-devel)
 {{- end }}
-{{- if .features.golang }}
-pkgs+=(golang)
+{{- if .features.ruby }}
+# Ruby build dependencies
+pkgs+=(openssl-devel readline-devel zlib-devel libffi-devel libyaml-devel)
 {{- end }}
 {{- if .features.docker }}
 pkgs+=(docker docker-compose)
@@ -155,19 +122,16 @@ sudo dnf install -y "${pkgs[@]}"
 
 {{- else if eq .chezmoi.osRelease.id "ubuntu" }}
 # Ubuntu/Debian
+# Note: CLI tools (ripgrep, fd, bat, fzf, jq, etc.) installed via eget in user-space
 echo "Installing APT packages..."
 pkgs=(
     git
-    fzf
-    ripgrep
-    fd-find
-    bat
-    jq
     curl
     wget
     tree
     htop
     build-essential
+    unzip
 )
 {{- if .features.tmux }}
 pkgs+=(tmux)
@@ -178,34 +142,18 @@ pkgs+=(vim)
 pkgs+=(neovim)
 {{- end }}
 {{- end }}
-{{- if .features.nodejs }}
-pkgs+=(nodejs npm)
-{{- end }}
 {{- if .features.python }}
 pkgs+=(python3 python3-pip python3-venv python3-dev)
 {{- end }}
-{{- if .features.golang }}
-pkgs+=(golang)
+{{- if .features.ruby }}
+# Ruby build dependencies
+pkgs+=(autoconf patch rustc libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev uuid-dev)
 {{- end }}
 {{- if .features.docker }}
 pkgs+=(docker.io docker-compose)
 {{- end }}
 sudo apt update
 sudo apt install -y "${pkgs[@]}"
-
-
-{{- if .features.starship }}
-# Install starship (not in Ubuntu repos)
-if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
-    STARSHIP_INSTALLER="/tmp/starship-install-$$.sh"
-    curl -fsSL https://starship.rs/install.sh -o "$STARSHIP_INSTALLER"
-    chmod +x "$STARSHIP_INSTALLER"
-    "$STARSHIP_INSTALLER" -y
-    rm "$STARSHIP_INSTALLER"
-else
-    echo "Skipping starship install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
-fi
-{{- end }}
 
 {{- if .features.kubernetes }}
 # Install kubectl (from official k8s repo)
@@ -219,16 +167,16 @@ rm kubectl kubectl.sha256
 
 {{- else if or (eq .chezmoi.osRelease.id "rhel") (eq .chezmoi.osRelease.id "rocky") (eq .chezmoi.osRelease.id "almalinux") }}
 # RHEL/Rocky/AlmaLinux
+# Note: CLI tools (ripgrep, fd, bat, fzf, jq, etc.) installed via eget in user-space
 echo "Installing DNF packages..."
 pkgs=(
     git
-    fzf
-    ripgrep
-    jq
     curl
     wget
     tree
     htop
+    @development-tools
+    unzip
 )
 {{- if .features.tmux }}
 pkgs+=(tmux)
@@ -242,48 +190,11 @@ pkgs+=(neovim)
 {{- if .features.python }}
 pkgs+=(python3 python3-pip python3-devel)
 {{- end }}
+{{- if .features.ruby }}
+# Ruby build dependencies
+pkgs+=(openssl-devel readline-devel zlib-devel libffi-devel libyaml-devel)
+{{- end }}
 sudo dnf install -y "${pkgs[@]}"
-
-
-{{- if .features.starship }}
-# Install starship (not in RHEL repos)
-if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
-    STARSHIP_INSTALLER="/tmp/starship-install-$$.sh"
-    curl -fsSL https://starship.rs/install.sh -o "$STARSHIP_INSTALLER"
-    chmod +x "$STARSHIP_INSTALLER"
-    "$STARSHIP_INSTALLER" -y
-    rm "$STARSHIP_INSTALLER"
-else
-    echo "Skipping starship install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
-fi
-{{- end }}
-
-{{- if .features.nodejs }}
-# Install Node.js from NodeSource
-if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" == "1" ]]; then
-    NODESOURCE_SCRIPT="/tmp/nodesource-setup-$$.sh"
-    curl -fsSL https://rpm.nodesource.com/setup_lts.x -o "$NODESOURCE_SCRIPT"
-    chmod +x "$NODESOURCE_SCRIPT"
-    sudo bash "$NODESOURCE_SCRIPT"
-    rm "$NODESOURCE_SCRIPT"
-    sudo dnf install -y nodejs
-else
-    echo "Skipping NodeSource install (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
-    echo "Note: You can install Node.js via your distro repos or module streams."
-fi
-{{- end }}
-
-{{- if .features.golang }}
-# Install Go from official source
-GO_VERSION=$(curl -fsSL https://go.dev/VERSION?m=text | head -n1)
-GO_TARBALL="${GO_VERSION}.linux-amd64.tar.gz"
-curl -fsSLO "https://go.dev/dl/${GO_TARBALL}"
-curl -fsSLO "https://go.dev/dl/${GO_TARBALL}.sha256"
-verify_sha256 "${GO_TARBALL}" "$(cat ${GO_TARBALL}.sha256)"
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf "${GO_TARBALL}"
-rm "${GO_TARBALL}" "${GO_TARBALL}.sha256"
-{{- end }}
 
 {{- if .features.docker }}
 # Install Docker from official repo
@@ -313,29 +224,8 @@ if [[ ! -f ~/.vim/autoload/plug.vim ]]; then
 fi
 {{- end }}
 
-# Fix package naming inconsistencies on Debian/Ubuntu
-{{- if or (eq .chezmoi.osRelease.id "ubuntu") (eq .chezmoi.osRelease.id "debian") }}
-echo "Creating symlinks for renamed packages..."
-
-# bat is installed as batcat on Ubuntu/Debian
-if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
-    mkdir -p ~/.local/bin
-    ln -sf "$(which batcat)" ~/.local/bin/bat
-    echo "  Created bat -> batcat symlink"
-fi
-
-# fd-find is installed as fdfind on Ubuntu/Debian
-if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
-    mkdir -p ~/.local/bin
-    ln -sf "$(which fdfind)" ~/.local/bin/fd
-    echo "  Created fd -> fdfind symlink"
-fi
-
-# Ensure ~/.local/bin is in PATH (it will be after shell restart)
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo "Note: ~/.local/bin will be added to PATH after shell restart"
-fi
-{{- end }}
+# Ensure ~/.local/bin directory exists for user-space tools
+mkdir -p ~/.local/bin
 
 echo "Package installation complete!"
 echo ""
