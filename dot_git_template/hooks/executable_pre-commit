@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2001  # sed for line-by-line prefixing is intentional
 # Git pre-commit hook
 # Portable version that works without Nix dependencies
 
@@ -102,7 +103,7 @@ BINARY_EXTENSIONS="exe|dll|so|dylib|a|o|bin|dat|class|pyc|pyo|obj|lib|app"
 for file in "${staged_added_files[@]}"; do
     if echo "$file" | grep -qE "\.(${BINARY_EXTENSIONS})$"; then
         printf '%b\n' "${RED}Error: Binary file detected: $file${NC}"
-        echo "  Extension: .$(echo "$file" | sed 's/.*\.//')"
+        echo "  Extension: .${file##*.}"
         binary_files_found=true
     fi
 done

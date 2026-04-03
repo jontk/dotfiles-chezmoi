@@ -1,0 +1,197 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Shellcheck scripts
+        run: |
+          shellcheck -x quick-test.sh
+          shellcheck -x dot_git_template/hooks/executable_pre-commit
+          shellcheck -x dot_config/shell/aliases.sh
+          shellcheck -x dot_config/docker/aliases.sh
+          shellcheck -x dot_config/kubernetes/kubectl-aliases.sh
+          shellcheck -x dot_local/bin/executable_enable-systemd-services.sh
+
+      - name: Shellcheck templates (syntax only)
+        run: |
+          # Strip chezmoi template directives before linting
+          for f in run_once_before_10-install-packages.sh.tmpl \
+                   run_onchange_15-install-user-tools.sh.tmpl \
+                   run_onchange_20-setup-shell.sh.tmpl \
+                   dot_config/shell/environment.sh.tmpl \
+                   dot_config/shell/environment.posix.sh.tmpl \
+                   dot_config/shell/functions.sh.tmpl; do
+            echo "Checking $f..."
+            sed -E 's/\{\{[^}]*\}\}//g' "$f" | shellcheck -s bash - || true
+          done
+
+      - name: Validate YAML files
+        run: |
+          python3 -c "
+          import yaml, sys, glob
+          errors = 0
+          for f in glob.glob('**/*.yaml', recursive=True) + glob.glob('**/*.yml', recursive=True):
+              if 'node_modules' in f:
+                  continue
+              try:
+                  with open(f) as fh:
+                      yaml.safe_load(fh)
+              except Exception as e:
+                  print(f'FAIL: {f}: {e}')
+                  errors += 1
+          sys.exit(1 if errors else 0)
+          "
+
+  validate-templates:
+    name: Validate chezmoi templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+
+      - name: Create test config
+        run: |
+          mkdir -p ~/.config/chezmoi
+          cat > ~/.config/chezmoi/chezmoi.toml <<'EOF'
+          [data]
+              profile = "personal"
+              hostname = "ci-test"
+              github_username = "testuser"
+
+              [data.git]
+                  email = "test@example.com"
+                  name = "Test User"
+                  githubKey = ""
+                  gitlabKey = ""
+                  workEmail = ""
+                  workName = ""
+                  workGpgKey = ""
+
+              [data.features]
+                  editors_full = true
+                  docker = true
+                  kubernetes = true
+                  nodejs = true
+                  python = true
+                  golang = true
+                  ruby = false
+                  java = false
+                  compilers = false
+                  fonts = true
+                  starship = true
+                  tmux = true
+                  beta_features = false
+                  work_specific = false
+
+              [data.shell]
+                  prompt_style = "starship"
+                  enable_functions = true
+
+              [data.editor]
+                  default = "vim"
+
+              [data.work]
+                  username = ""
+                  sshKey = ""
+          EOF
+
+      - name: Validate templates (dry run)
+        run: |
+          chezmoi init --source "$PWD" --destination /tmp/chezmoi-test \
+            --exclude scripts,externals --no-tty --force --dry-run
+
+  test-apply:
+    name: Test apply in Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply dotfiles in container
+        run: |
+          docker run --rm \
+            -v "$PWD":/dotfiles:ro \
+            ubuntu:22.04 bash -c '
+              set -e
+              apt-get update -qq && apt-get install -y -qq git curl sudo vim zsh unzip
+
+              # Install chezmoi
+              sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/bin
+              export PATH="$HOME/bin:$PATH"
+
+              # Create config
+              mkdir -p ~/.config/chezmoi
+              cat > ~/.config/chezmoi/chezmoi.toml <<EOF
+          [data]
+              profile = "personal"
+              hostname = "ci-test"
+              github_username = "testuser"
+
+              [data.git]
+                  email = "test@example.com"
+                  name = "Test User"
+                  githubKey = ""
+                  gitlabKey = ""
+                  workEmail = ""
+                  workName = ""
+                  workGpgKey = ""
+
+              [data.features]
+                  editors_full = true
+                  docker = true
+                  kubernetes = true
+                  nodejs = true
+                  python = true
+                  golang = true
+                  ruby = false
+                  java = false
+                  compilers = false
+                  fonts = true
+                  starship = true
+                  tmux = true
+                  beta_features = false
+                  work_specific = false
+
+              [data.shell]
+                  prompt_style = "starship"
+                  enable_functions = true
+
+              [data.editor]
+                  default = "vim"
+
+              [data.work]
+                  username = ""
+                  sshKey = ""
+          EOF
+
+              # Apply (skip install scripts and externals)
+              chezmoi init --apply --source /dotfiles --exclude scripts,externals --force
+
+              # Verify key files
+              echo ""
+              echo "=== Verification ==="
+              test -f ~/.bashrc        && echo "OK: .bashrc"        || { echo "FAIL: .bashrc"; exit 1; }
+              test -f ~/.zshrc         && echo "OK: .zshrc"         || { echo "FAIL: .zshrc"; exit 1; }
+              test -f ~/.profile       && echo "OK: .profile"       || { echo "FAIL: .profile"; exit 1; }
+              test -f ~/.gitconfig     && echo "OK: .gitconfig"     || { echo "FAIL: .gitconfig"; exit 1; }
+              test -f ~/.ssh/config    && echo "OK: .ssh/config"    || { echo "FAIL: .ssh/config"; exit 1; }
+              test -f ~/.vimrc         && echo "OK: .vimrc"         || { echo "FAIL: .vimrc"; exit 1; }
+              test -d ~/.git_template  && echo "OK: .git_template"  || { echo "FAIL: .git_template"; exit 1; }
+
+              echo ""
+              echo "All checks passed."
+            '

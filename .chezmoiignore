@@ -63,18 +63,14 @@ Library/
 .aws/
 {{- end }}
 
-# Always ignore
+# Always ignore - repo-only files
 .git/
+.github/
+.gitignore
+.devcontainer/
 README.md
-MIGRATION_GUIDE.md
 LICENSE
-
-# Documentation and analysis files
-CRITICAL_IMPROVEMENTS_ANALYSIS.md
-EXPERT_RECOMMENDATIONS.md
-IMPLEMENTATION_SUMMARY.md
-TESTING_GUIDE.md
-TODO.md
+quick-test.sh
 
 # Temporary and OS-specific files
 .DS_Store

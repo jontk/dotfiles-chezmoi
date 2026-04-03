@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Docker aliases and functions
 # Source this file in your shell configuration
 
@@ -139,7 +140,7 @@ dmultilogs() {
     done
     
     # Wait for Ctrl+C
-    trap "kill ${pids[*]}" INT
+    trap 'kill ${pids[*]}' INT
     wait
 }
 
@@ -176,10 +177,11 @@ ddisk() {
 
 # Stop all running containers
 dstopall() {
-    local containers=$(docker ps -q)
+    local containers
+    containers=$(docker ps -q)
     if [[ -n "$containers" ]]; then
         echo "Stopping all containers..."
-        docker stop $containers
+        echo "$containers" | xargs docker stop
     else
         echo "No running containers"
     fi
@@ -187,14 +189,15 @@ dstopall() {
 
 # Remove all containers (including running)
 drmall() {
-    local containers=$(docker ps -aq)
+    local containers
+    containers=$(docker ps -aq)
     if [[ -n "$containers" ]]; then
         echo "WARNING: This will force remove ALL containers (including running ones)!"
         read -p "Are you sure? [y/N] " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo "Removing all containers..."
-            docker rm -f $containers
+            echo "$containers" | xargs docker rm -f
         else
             echo "Cancelled."
         fi
@@ -205,14 +208,15 @@ drmall() {
 
 # Remove all images
 drmiall() {
-    local images=$(docker images -q)
+    local images
+    images=$(docker images -q)
     if [[ -n "$images" ]]; then
         echo "WARNING: This will force remove ALL Docker images!"
         read -p "Are you sure? [y/N] " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo "Removing all images..."
-            docker rmi -f $images
+            echo "$images" | xargs docker rmi -f
         else
             echo "Cancelled."
         fi
@@ -352,7 +356,8 @@ dwait() {
     
     local count=0
     while [[ $count -lt $timeout ]]; do
-        local health=$(docker inspect "$container" --format='{{.State.Health.Status}}' 2>/dev/null)
+        local health
+        health=$(docker inspect "$container" --format='{{.State.Health.Status}}' 2>/dev/null)
         if [[ "$health" == "healthy" ]]; then
             echo "Container $container is healthy!"
             return 0
