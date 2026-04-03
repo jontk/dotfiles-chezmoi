@@ -63,7 +63,7 @@ jobs:
       matrix:
         include:
           - profile: minimal
-            features: >-
+            features: |-
               editors_full = false
               docker = false
               kubernetes = false
@@ -82,7 +82,7 @@ jobs:
             shell_functions: "true"
             editor: "vim"
           - profile: personal
-            features: >-
+            features: |-
               editors_full = true
               docker = true
               kubernetes = true
@@ -101,7 +101,7 @@ jobs:
             shell_functions: "true"
             editor: "vim"
           - profile: work
-            features: >-
+            features: |-
               editors_full = true
               docker = true
               kubernetes = true
@@ -120,7 +120,7 @@ jobs:
             shell_functions: "true"
             editor: "vim"
           - profile: server
-            features: >-
+            features: |-
               editors_full = false
               docker = true
               kubernetes = false
@@ -140,7 +140,7 @@ jobs:
             shell_functions: "false"
             editor: "vim"
           - profile: experimental
-            features: >-
+            features: |-
               editors_full = true
               docker = true
               kubernetes = true
@@ -214,7 +214,7 @@ jobs:
           - profile: minimal
             os: ubuntu
             runner: ubuntu-latest
-            features: >-
+            features: |-
               editors_full = false
               docker = false
               kubernetes = false
@@ -236,7 +236,7 @@ jobs:
           - profile: personal
             os: ubuntu
             runner: ubuntu-latest
-            features: >-
+            features: |-
               editors_full = true
               docker = true
               kubernetes = true
@@ -260,7 +260,7 @@ jobs:
           - profile: server
             os: ubuntu
             runner: ubuntu-latest
-            features: >-
+            features: |-
               editors_full = false
               docker = true
               kubernetes = false
@@ -284,7 +284,7 @@ jobs:
           - profile: personal
             os: macos
             runner: macos-latest
-            features: >-
+            features: |-
               editors_full = true
               docker = true
               kubernetes = true
