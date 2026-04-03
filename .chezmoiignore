@@ -70,6 +70,10 @@ Library/
 .devcontainer/
 README.md
 LICENSE
+CONTRIBUTING.md
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+SECURITY.md
 quick-test.sh
 
 # Temporary and OS-specific files
