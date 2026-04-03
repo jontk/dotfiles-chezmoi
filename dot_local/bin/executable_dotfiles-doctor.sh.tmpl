@@ -118,7 +118,7 @@ echo ""
 echo "Editors:"
 check_file ~/.vimrc ".vimrc"
 check_cmd vim "vim"
-{{- if .features.neovim }}
+{{- if and (hasKey .features "neovim") .features.neovim }}
 check_cmd nvim "neovim"
 check_dir ~/.config/nvim "nvim config"
 {{- end }}
