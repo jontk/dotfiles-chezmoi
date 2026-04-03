@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared shell aliases
 # This file is sourced by both bash and zsh
 
@@ -34,7 +35,7 @@ case "$(uname -s)" in
     Linux*)
         # Linux specific
         alias ls='ls --color=auto'
-        alias localip='hostname -I | awk "{print \$1}"'
+        localip() { hostname -I | awk '{print $1}'; }
         alias ports='ss -tulanp'
         # Clipboard - Wayland or X11
         if [[ -n "$WAYLAND_DISPLAY" ]]; then
