@@ -157,6 +157,7 @@ Tested on:
 - **macOS**: Homebrew package management
 - **Fedora/RHEL/Rocky/AlmaLinux**: DNF package management
 - **Ubuntu/Debian**: APT package management
+- **NixOS**: System packages managed declaratively; user-space tools (cargo, uv, eget, starship, etc.) installed independently
 
 Platform-specific configurations are handled automatically through chezmoi templates.
 
