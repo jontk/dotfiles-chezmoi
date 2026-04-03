@@ -162,7 +162,8 @@ ksh() {
         return 1
     fi
     
-    local pod=$(kubectl get pods -n "$namespace" | grep "$pod_pattern" | head -1 | awk '{print $1}')
+    local pod
+    pod=$(kubectl get pods -n "$namespace" | grep "$pod_pattern" | head -1 | awk '{print $1}')
     if [[ -n "$pod" ]]; then
         kubectl exec -it "$pod" -n "$namespace" -- "$shell" || kubectl exec -it "$pod" -n "$namespace" -- /bin/sh
     else
@@ -193,7 +194,8 @@ kall() {
 kdelpe() {
     local namespace="${1:-default}"
 
-    local error_pods=$(kubectl get pods -n "$namespace" 2>/dev/null | grep -E 'Error|CrashLoopBackOff|ImagePullBackOff' | awk '{print $1}')
+    local error_pods
+    error_pods=$(kubectl get pods -n "$namespace" 2>/dev/null | grep -E 'Error|CrashLoopBackOff|ImagePullBackOff' | awk '{print $1}')
 
     if [[ -z "$error_pods" ]]; then
         echo "No pods in error state found in namespace '$namespace'"
@@ -260,7 +262,7 @@ krestart() {
 # Get container images for all pods
 kimages() {
     local namespace="${1:---all-namespaces}"
-    kubectl get pods $namespace -o jsonpath="{range .items[*]}{'\n'}{.metadata.namespace}{'\t'}{.metadata.name}{'\t'}{range .spec.containers[*]}{.image}{', '}{end}{end}" | sort | column -t
+    kubectl get pods "$namespace" -o jsonpath="{range .items[*]}{'\n'}{.metadata.namespace}{'\t'}{.metadata.name}{'\t'}{range .spec.containers[*]}{.image}{', '}{end}{end}" | sort | column -t
 }
 
 # Port forward with automatic pod selection
@@ -280,7 +282,8 @@ kpforward() {
         kubectl port-forward -n "$namespace" "service/$service_or_pattern" "$local_port:$remote_port"
     else
         # Try as pod pattern
-        local pod=$(kubectl get pods -n "$namespace" | grep "$service_or_pattern" | head -1 | awk '{print $1}')
+        local pod
+        pod=$(kubectl get pods -n "$namespace" | grep "$service_or_pattern" | head -1 | awk '{print $1}')
         if [[ -n "$pod" ]]; then
             kubectl port-forward -n "$namespace" "$pod" "$local_port:$remote_port"
         else
