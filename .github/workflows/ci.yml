@@ -214,6 +214,7 @@ jobs:
           - profile: minimal
             os: ubuntu
             runner: ubuntu-latest
+            editors_full: false
             features: |-
               editors_full = false
               docker = false
@@ -236,6 +237,7 @@ jobs:
           - profile: personal
             os: ubuntu
             runner: ubuntu-latest
+            editors_full: true
             features: |-
               editors_full = true
               docker = true
@@ -260,6 +262,7 @@ jobs:
           - profile: server
             os: ubuntu
             runner: ubuntu-latest
+            editors_full: false
             features: |-
               editors_full = false
               docker = true
@@ -284,6 +287,7 @@ jobs:
           - profile: personal
             os: macos
             runner: macos-latest
+            editors_full: true
             features: |-
               editors_full = true
               docker = true
@@ -362,8 +366,10 @@ jobs:
               test -f ~/.profile       && echo "OK: .profile"       || { echo "FAIL: .profile"; exit 1; }
               test -f ~/.gitconfig     && echo "OK: .gitconfig"     || { echo "FAIL: .gitconfig"; exit 1; }
               test -f ~/.ssh/config    && echo "OK: .ssh/config"    || { echo "FAIL: .ssh/config"; exit 1; }
-              test -f ~/.vimrc         && echo "OK: .vimrc"         || { echo "FAIL: .vimrc"; exit 1; }
               test -d ~/.git_template  && echo "OK: .git_template"  || { echo "FAIL: .git_template"; exit 1; }
+              if [ "${{ matrix.editors_full }}" = "true" ]; then
+                test -f ~/.vimrc       && echo "OK: .vimrc"        || { echo "FAIL: .vimrc"; exit 1; }
+              fi
 
               ${{ matrix.verify_extra }}
 
@@ -421,8 +427,10 @@ jobs:
           test -f ~/.profile       && echo "OK: .profile"       || { echo "FAIL: .profile"; exit 1; }
           test -f ~/.gitconfig     && echo "OK: .gitconfig"     || { echo "FAIL: .gitconfig"; exit 1; }
           test -f ~/.ssh/config    && echo "OK: .ssh/config"    || { echo "FAIL: .ssh/config"; exit 1; }
-          test -f ~/.vimrc         && echo "OK: .vimrc"         || { echo "FAIL: .vimrc"; exit 1; }
           test -d ~/.git_template  && echo "OK: .git_template"  || { echo "FAIL: .git_template"; exit 1; }
+          if [ "${{ matrix.editors_full }}" = "true" ]; then
+            test -f ~/.vimrc       && echo "OK: .vimrc"        || { echo "FAIL: .vimrc"; exit 1; }
+          fi
 
           echo ""
           echo "All checks passed."
