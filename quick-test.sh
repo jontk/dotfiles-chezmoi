@@ -14,7 +14,7 @@
 
 set -e
 
-DOTFILES_DIR="/home/jontk/src/github.com/jontk/dotfiles-chezmoi"
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONTAINER_NAME="dotfiles-test"
 
 # Parse arguments
@@ -88,6 +88,7 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 [data]
     profile = "personal"
     hostname = "test-container"
+    github_username = "testuser"
 
     [data.git]
         email = "$TEST_EMAIL"
@@ -243,6 +244,7 @@ else
 [data]
     profile = "personal"
     hostname = "test-container"
+    github_username = "testuser"
 
     [data.git]
         email = "$TEST_EMAIL"

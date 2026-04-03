@@ -1,6 +1,7 @@
 {{- $profile := promptStringOnce . "profile" "Profile (minimal/personal/work/server/experimental)" "personal" -}}
 {{- $gitEmail := promptStringOnce . "git.email" "Git email" "" -}}
 {{- $gitName := promptStringOnce . "git.name" "Git name" "" -}}
+{{- $githubUsername := promptStringOnce . "github_username" "GitHub username" "" -}}
 {{- $workGitEmail := "" -}}
 {{- $workGitName := "" -}}
 {{- $workGpgKey := "" -}}
@@ -13,6 +14,7 @@
 [data]
     profile = {{ $profile | quote }}
     hostname = {{ .chezmoi.hostname | quote }}
+    github_username = {{ $githubUsername | quote }}
 
     [data.git]
         email = {{ $gitEmail | quote }}

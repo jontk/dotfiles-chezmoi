@@ -24,7 +24,7 @@ NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$XDG_DATA_HOME/npm}"
 export GOPATH CARGO_HOME RUSTUP_HOME NPM_CONFIG_PREFIX
 
 # Add development tool paths to PATH
-PATH="$GOPATH/bin:$CARGO_HOME/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
+PATH="$HOME/go/bin:$GOPATH/bin:$CARGO_HOME/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
 
 {{- if .features.golang }}
 # User-space Go installation (takes precedence over system Go)

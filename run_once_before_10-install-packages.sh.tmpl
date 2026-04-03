@@ -214,6 +214,14 @@ sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 rm kubectl kubectl.sha256
 {{- end }}
 
+{{- else if eq .chezmoi.osRelease.id "nixos" }}
+# NixOS
+# System packages are managed declaratively via NixOS configuration (configuration.nix / flake.nix).
+# Only user-space tools (eget, uv, cargo, fnm, Go, etc.) are installed by the next script.
+echo "NixOS detected — skipping system package installation."
+echo "System packages should be managed via your NixOS configuration."
+echo "User-space tools will be installed separately to ~/.local/bin."
+
 {{- end }}
 
 {{- if .features.editors_full }}

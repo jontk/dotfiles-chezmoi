@@ -2,19 +2,30 @@
 # Git pre-commit hook
 # Portable version that works without Nix dependencies
 
-set -e
+# No set -e: this hook has many commands expected to fail; errors are handled explicitly.
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Colors for output (suppressed when not writing to a terminal)
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    RED='' GREEN='' YELLOW='' BLUE='' NC=''
+fi
 
 # Debug mode
 if [[ -n "$DEBUG" ]]; then
     set -x
 fi
+
+# Warning counter for summary
+warning_count=0
+warn() {
+    printf '%b\n' "${YELLOW}Warning: $1${NC}"
+    ((warning_count++)) || true
+}
 
 # Collect staged files (null-delimited for safety)
 staged_files=()
@@ -32,32 +43,41 @@ while IFS= read -r -d '' file; do
     staged_files_acm+=("$file")
 done < <(git diff --cached --name-only --diff-filter=ACM -z)
 
-echo -e "${BLUE}Running pre-commit checks...${NC}"
+# Exit early if nothing is staged
+if [[ ${#staged_files[@]} -eq 0 ]]; then
+    printf '%b\n' "${GREEN}No staged files, skipping pre-commit checks.${NC}"
+    exit 0
+fi
 
-# Check for merge conflicts
+printf '%b\n' "${BLUE}Running pre-commit checks...${NC}"
+
+# ─── Check for merge conflict markers (uses staged content) ──────────────────
 echo "Checking for merge conflict markers..."
-if [[ ${#staged_files[@]} -gt 0 ]] && grep -l -E '^(<<<<<<<|=======|>>>>>>>)' -- "${staged_files[@]}" 2>/dev/null; then
-    echo -e "${RED}Error: Merge conflict markers found in staged files:${NC}"
-    grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- "${staged_files[@]}" 2>/dev/null || true
+conflict_found=false
+for file in "${staged_files[@]}"; do
+    if git show ":0:$file" 2>/dev/null | grep -nE '^(<<<<<<<|=======|>>>>>>>)' > /dev/null 2>&1; then
+        if [[ "$conflict_found" == "false" ]]; then
+            printf '%b\n' "${RED}Error: Merge conflict markers found in staged files:${NC}"
+            conflict_found=true
+        fi
+        echo "  $file:"
+        git show ":0:$file" 2>/dev/null | grep -nE '^(<<<<<<<|=======|>>>>>>>)' | sed 's/^/    /'
+    fi
+done
+if [[ "$conflict_found" == "true" ]]; then
     exit 1
 fi
 
-# Check for large files (>10MB)
+# ─── Check for large files using staged blob size ────────────────────────────
 echo "Checking for large files..."
 large_files_found=false
-for file in "${staged_files[@]}"; do
-    if [[ -f "$file" ]]; then
-        # Detect stat command flavor by testing flags
-        if stat -f%z "$file" >/dev/null 2>&1; then
-            # BSD stat (macOS default)
-            size=$(stat -f%z "$file" 2>/dev/null || echo 0)
-        else
-            # GNU stat (Linux, or GNU coreutils on macOS)
-            size=$(stat -c%s "$file" 2>/dev/null || echo 0)
-        fi
-        
+for file in "${staged_files_acm[@]}"; do
+    # Get the blob hash from the index for this file
+    blob_hash=$(git ls-files --stage -- "$file" 2>/dev/null | awk '{print $2}')
+    if [[ -n "$blob_hash" ]]; then
+        size=$(git cat-file -s "$blob_hash" 2>/dev/null || echo 0)
         if [[ "$size" -gt 10485760 ]]; then  # 10MB
-            echo -e "${RED}Error: Large file detected: $file${NC}"
+            printf '%b\n' "${RED}Error: Large staged file: $file${NC}"
             if command -v numfmt >/dev/null 2>&1; then
                 echo "  Size: $(numfmt --to=iec-i --suffix=B "$size")"
             else
@@ -73,100 +93,123 @@ if [[ "$large_files_found" == "true" ]]; then
     exit 1
 fi
 
-# Check for binary files
+# ─── Check for binary files ──────────────────────────────────────────────────
 echo "Checking for binary executable files..."
 binary_files_found=false
 
-# List of binary file extensions to block
 BINARY_EXTENSIONS="exe|dll|so|dylib|a|o|bin|dat|class|pyc|pyo|obj|lib|app"
 
-# Check for files with binary extensions
 for file in "${staged_added_files[@]}"; do
-    if [[ -f "$file" ]] && echo "$file" | grep -qE "\.(${BINARY_EXTENSIONS})$"; then
-        echo -e "${RED}Error: Binary file detected: $file${NC}"
+    if echo "$file" | grep -qE "\.(${BINARY_EXTENSIONS})$"; then
+        printf '%b\n' "${RED}Error: Binary file detected: $file${NC}"
         echo "  Extension: .$(echo "$file" | sed 's/.*\.//')"
         binary_files_found=true
     fi
 done
 
 # Check for executable binaries without extensions (compiled programs)
-for file in "${staged_added_files[@]}"; do
-    if [[ -f "$file" ]]; then
-        # Use file command to detect binary executables
-        if file "$file" | grep -qE "(ELF|PE32|Mach-O|executable|compiled)"; then
-            # Skip files in common binary directories that should be allowed
-            if ! echo "$file" | grep -qE "^(vendor/|node_modules/|\.venv/|venv/)"; then
-                echo -e "${RED}Error: Compiled binary detected: $file${NC}"
-                file_type=$(file "$file" | cut -d: -f2)
+if command -v file >/dev/null 2>&1; then
+    for file in "${staged_added_files[@]}"; do
+        if [[ -f "$file" ]]; then
+            file_output=$(file "$file")
+            if echo "$file_output" | grep -qE "(ELF|PE32|Mach-O)"; then
+                printf '%b\n' "${RED}Error: Compiled binary detected: $file${NC}"
+                file_type=$(echo "$file_output" | cut -d: -f2)
                 echo "  Type:$file_type"
                 binary_files_found=true
             fi
         fi
-    fi
-done
+    done
+fi
 
 if [[ "$binary_files_found" == "true" ]]; then
-    echo -e "${RED}Binary files should not be committed to git.${NC}"
+    printf '%b\n' "${RED}Binary files should not be committed to git.${NC}"
     echo "Add them to .gitignore or use Git LFS for necessary binaries."
-    echo ""
-    echo "To bypass this check: git commit --no-verify"
     exit 1
 fi
 
+# ─── Check for sensitive filenames ───────────────────────────────────────────
+echo "Checking for sensitive files..."
+SENSITIVE_FILES='(^|/)(\.(env|env\.[^.]+|netrc|pgpass|my\.cnf|htpasswd|dockercfg|npmrc|pypirc)|credentials\.json|service[-_]account.*\.json|.*\.pem|.*\.key|id_(rsa|dsa|ecdsa|ed25519)|.*_key(\.pub)?|token\.json|secrets?\.(json|ya?ml|toml))$'
 
-# Check for sensitive data patterns
+sensitive_file_found=false
+for file in "${staged_files[@]}"; do
+    if echo "$file" | grep -qE "$SENSITIVE_FILES"; then
+        printf '%b\n' "${RED}Error: Potentially sensitive file staged: $file${NC}"
+        sensitive_file_found=true
+    fi
+done
+
+if [[ "$sensitive_file_found" == "true" ]]; then
+    printf '%b\n' "${RED}These files typically contain secrets and should not be committed.${NC}"
+    echo "Add them to .gitignore instead."
+    exit 1
+fi
+
+# ─── Check for sensitive data patterns (uses staged content) ─────────────────
 echo "Checking for sensitive data patterns..."
 
-# Combined regex pattern for better performance (single grep call)
-# Includes: API keys, tokens, passwords, private keys, cloud credentials, etc.
-SENSITIVE_PATTERN='(PRIVATE[_ ]KEY|private[_-]key|BEGIN[_ ](RSA|DSA|EC|OPENSSH|PGP)[_ ]PRIVATE[_ ]KEY|aws[_-]access[_-]key[_-]id|aws[_-]secret[_-]access[_-]key|AKIA[0-9A-Z]{16}|api[_-]?key|access[_-]?token|auth[_-]?token|bearer[_ ]|credentials?|password|passwd|secret[_-]?key|SECRET[_-]KEY|github[_-]?token|ghp_[a-zA-Z0-9]{36}|gho_[a-zA-Z0-9]{36}|ghu_[a-zA-Z0-9]{36}|ghs_[a-zA-Z0-9]{36}|ghr_[a-zA-Z0-9]{36}|xox[baprs]-[0-9a-zA-Z-]+|eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*)'
+# Assignment-based patterns to reduce false positives (key=value, key: value, key "value")
+SENSITIVE_PATTERN='(BEGIN[_ ](RSA|DSA|EC|OPENSSH|PGP)[_ ]PRIVATE[_ ]KEY|aws[_-]access[_-]key[_-]id\s*[:=]|aws[_-]secret[_-]access[_-]key\s*[:=]|AKIA[0-9A-Z]{16}|(api[_-]?key|access[_-]?token|auth[_-]?token|secret[_-]?key|SECRET[_-]KEY|password|passwd)\s*[:=]\s*["\x27]?.{8,}|ghp_[a-zA-Z0-9]{36}|gho_[a-zA-Z0-9]{36}|ghu_[a-zA-Z0-9]{36}|ghs_[a-zA-Z0-9]{36}|ghr_[a-zA-Z0-9]{36}|xox[baprs]-[0-9a-zA-Z-]+|eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*|sk_live_[a-zA-Z0-9]+|rk_live_[a-zA-Z0-9]+|SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}|"type"\s*:\s*"service_account"|postgres(ql)?://[^/\s]*:[^@/\s]+@|mysql://[^/\s]*:[^@/\s]+@|mongodb(\+srv)?://[^/\s]*:[^@/\s]+@)'
 
-# Use single grep call for all patterns (much faster than loop)
-if [[ ${#staged_files[@]} -gt 0 ]]; then
-    if grep -E -n "$SENSITIVE_PATTERN" -- "${staged_files[@]}" 2>/dev/null; then
-        echo -e "${YELLOW}Warning: Possible sensitive data found matching known secret patterns${NC}"
-        echo -e "${YELLOW}Patterns matched include: API keys, tokens, passwords, private keys, AWS credentials, etc.${NC}"
-        echo -e "${YELLOW}Please review and ensure no secrets are being committed${NC}"
-        read -p "Continue anyway? (y/N) " -n 1 -r response
+secrets_found=false
+for file in "${staged_files[@]}"; do
+    matches=$(git show ":0:$file" 2>/dev/null | grep -nE "$SENSITIVE_PATTERN" 2>/dev/null || true)
+    if [[ -n "$matches" ]]; then
+        if [[ "$secrets_found" == "false" ]]; then
+            printf '%b\n' "${YELLOW}Possible sensitive data found in staged content:${NC}"
+            secrets_found=true
+        fi
+        echo "  $file:"
+        echo "$matches" | sed 's/^/    /'
+    fi
+done
+
+if [[ "$secrets_found" == "true" ]]; then
+    printf '%b\n' "${YELLOW}Patterns matched: API keys, tokens, passwords, private keys, cloud credentials, connection strings${NC}"
+    printf '%b\n' "${YELLOW}Please review and ensure no secrets are being committed.${NC}"
+    if [[ -t 0 ]]; then
+        read -p "Continue anyway? (y/N) " -n 1 -r response </dev/tty
         echo
         if [[ ! "$response" =~ ^[Yy]$ ]]; then
             exit 1
         fi
+    else
+        printf '%b\n' "${RED}Error: Possible secrets detected in non-interactive mode. Aborting.${NC}"
+        printf '%b\n' "${RED}Review staged content and re-commit, or use --no-verify to bypass.${NC}"
+        exit 1
     fi
 fi
 
-# Check and auto-fix trailing whitespace
-echo "Checking for trailing whitespace..."
-files_with_whitespace=()
-for file in "${staged_files[@]}"; do
-    if [[ -f "$file" ]]; then
-        if ! git diff --cached --check -- "$file" >/dev/null 2>&1; then
-            files_with_whitespace+=("$file")
+# ─── Check for debug statements in staged content ───────────────────────────
+echo "Checking for debug statements..."
+DEBUG_PATTERN='(console\.(log|debug|dir|trace)\(|debugger[;[:space:]]|import\s+pdb|pdb\.set_trace\(\)|breakpoint\(\)|binding\.pry|byebug|debug!|dbg!)'
+
+debug_found=false
+for file in "${staged_files_acm[@]}"; do
+    matches=$(git show ":0:$file" 2>/dev/null | grep -nE "$DEBUG_PATTERN" 2>/dev/null || true)
+    if [[ -n "$matches" ]]; then
+        if [[ "$debug_found" == "false" ]]; then
+            debug_found=true
         fi
+        warn "Debug statement in $file:"
+        echo "$matches" | sed 's/^/    /'
     fi
 done
 
-if [[ ${#files_with_whitespace[@]} -gt 0 ]]; then
-    echo -e "${YELLOW}Auto-fixing trailing whitespace...${NC}"
-
-    for file in "${files_with_whitespace[@]}"; do
-        echo "  Fixing: $file"
-        # Detect sed flavor by testing behavior, not OS
-        if sed --version >/dev/null 2>&1; then
-            # GNU sed (supports --version)
-            sed -i 's/[[:space:]]*$//' "$file"
-        else
-            # BSD sed (macOS default, doesn't support --version)
-            sed -i '' 's/[[:space:]]*$//' "$file"
-        fi
-        # Re-stage the fixed file
-        git add "$file"
-    done
-
-    echo -e "${GREEN}✓ Trailing whitespace fixed and re-staged${NC}"
+# ─── Warn on trailing whitespace (no auto-fix to avoid staging unintended changes) ─
+echo "Checking for trailing whitespace..."
+ws_output=$(git diff --cached --check 2>&1 || true)
+if [[ -n "$ws_output" ]]; then
+    warn "Trailing whitespace found in staged content:"
+    echo "$ws_output" | head -20 | sed 's/^/    /'
+    if [[ $(echo "$ws_output" | wc -l) -gt 20 ]]; then
+        echo "    ... (truncated)"
+    fi
+    echo "  Fix with: sed -i 's/[[:space:]]*\$//' <file> && git add <file>"
 fi
 
-# Language-specific formatting checks
+# ─── Language-specific formatting checks ─────────────────────────────────────
 python_files=()
 js_files=()
 go_files=()
@@ -186,131 +229,141 @@ for file in "${staged_files_acm[@]}"; do
         *.yml|*.yaml) yaml_files+=("$file") ;;
         *.json) json_files+=("$file") ;;
         *.md|*.markdown) markdown_files+=("$file") ;;
+        *)
+            # Detect shell scripts by shebang for files without extensions
+            if [[ -f "$file" ]] && head -1 "$file" 2>/dev/null | grep -qE '^#!.*\b(ba)?sh\b|^#!.*\bzsh\b'; then
+                shell_files+=("$file")
+            fi
+            ;;
     esac
 done
 
-# Python formatting check
+# Python
 if [[ ${#python_files[@]} -gt 0 ]]; then
     echo "Checking Python files..."
-
-    # Check with black if available
     if command -v black >/dev/null 2>&1; then
         if ! black --check --quiet "${python_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Python files not formatted with black${NC}"
-            echo "Run: black --check --quiet <files>"
+            warn "Python files not formatted with black. Run: black ${python_files[*]}"
         fi
     fi
-
-    # Check with flake8 if available
     if command -v flake8 >/dev/null 2>&1; then
         if ! flake8 --max-line-length=88 "${python_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Python linting issues found${NC}"
+            warn "Python linting issues found (flake8)"
         fi
     fi
 fi
 
-# JavaScript/TypeScript formatting check
+# JavaScript/TypeScript
 if [[ ${#js_files[@]} -gt 0 ]]; then
     echo "Checking JavaScript/TypeScript files..."
-
     if command -v prettier >/dev/null 2>&1; then
         if ! prettier --check "${js_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: JS/TS files not formatted with prettier${NC}"
-            echo "Run: prettier --write <files>"
+            warn "JS/TS files not formatted with prettier. Run: prettier --write ${js_files[*]}"
         fi
     fi
-
     if command -v eslint >/dev/null 2>&1; then
         if ! eslint "${js_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: ESLint issues found${NC}"
+            warn "ESLint issues found"
         fi
     fi
 fi
 
-# Go formatting check
+# Go (only check staged files, not entire module)
 if [[ ${#go_files[@]} -gt 0 ]]; then
     echo "Checking Go files..."
-
     if command -v gofmt >/dev/null 2>&1; then
-        if gofmt -l "${go_files[@]}" | grep -q .; then
-            echo -e "${YELLOW}Warning: Go files not formatted${NC}"
-            echo "Run: gofmt -w <files>"
+        if gofmt -l "${go_files[@]}" 2>/dev/null | grep -q .; then
+            warn "Go files not formatted. Run: gofmt -w ${go_files[*]}"
         fi
     fi
-
     if command -v go >/dev/null 2>&1; then
-        if ! go vet ./... 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Go vet issues found${NC}"
+        # Determine unique packages for staged Go files instead of vetting everything
+        go_packages=()
+        for file in "${go_files[@]}"; do
+            pkg_dir=$(dirname "$file")
+            go_packages+=("./$pkg_dir")
+        done
+        # Deduplicate
+        mapfile -t go_packages < <(printf '%s\n' "${go_packages[@]}" | sort -u)
+        if ! go vet "${go_packages[@]}" 2>/dev/null; then
+            warn "Go vet issues found"
         fi
     fi
 fi
 
-# Rust formatting check
+# Rust (only check staged files, not entire workspace)
 if [[ ${#rust_files[@]} -gt 0 ]]; then
     echo "Checking Rust files..."
-
     if command -v rustfmt >/dev/null 2>&1; then
         if ! rustfmt --check "${rust_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Rust files not formatted${NC}"
-            echo "Run: rustfmt <files>"
+            warn "Rust files not formatted. Run: rustfmt ${rust_files[*]}"
         fi
     fi
-
-    if command -v cargo >/dev/null 2>&1; then
-        if ! cargo clippy --quiet 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Cargo clippy issues found${NC}"
-        fi
-    fi
+    # Skip cargo clippy for the whole workspace — rustfmt on staged files is sufficient
 fi
 
-# Shell script checks
+# Shell scripts
 if [[ ${#shell_files[@]} -gt 0 ]]; then
     echo "Checking shell scripts..."
-
     if command -v shellcheck >/dev/null 2>&1; then
         if ! shellcheck "${shell_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Shellcheck issues found${NC}"
+            warn "Shellcheck issues found"
         fi
     fi
 fi
 
-# YAML/JSON formatting checks
+# YAML
 if [[ ${#yaml_files[@]} -gt 0 ]]; then
     echo "Checking YAML files..."
-
     if command -v yamllint >/dev/null 2>&1; then
         if ! yamllint -d relaxed "${yaml_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: YAML formatting issues found${NC}"
+            warn "YAML formatting issues found (yamllint)"
         fi
     fi
 fi
 
+# JSON
 if [[ ${#json_files[@]} -gt 0 ]]; then
     echo "Checking JSON files..."
-
-    for file in "${json_files[@]}"; do
-        if ! python3 -m json.tool "$file" >/dev/null 2>&1; then
-            echo -e "${YELLOW}Warning: Invalid JSON in $file${NC}"
-        fi
-    done
+    if command -v python3 >/dev/null 2>&1; then
+        for file in "${json_files[@]}"; do
+            if ! git show ":0:$file" 2>/dev/null | python3 -m json.tool > /dev/null 2>&1; then
+                warn "Invalid JSON in $file"
+            fi
+        done
+    elif command -v jq >/dev/null 2>&1; then
+        for file in "${json_files[@]}"; do
+            if ! git show ":0:$file" 2>/dev/null | jq empty > /dev/null 2>&1; then
+                warn "Invalid JSON in $file"
+            fi
+        done
+    fi
 fi
 
-# Markdown checks
+# Markdown
 if [[ ${#markdown_files[@]} -gt 0 ]]; then
     echo "Checking Markdown files..."
-
     if command -v markdownlint >/dev/null 2>&1; then
         if ! markdownlint "${markdown_files[@]}" 2>/dev/null; then
-            echo -e "${YELLOW}Warning: Markdown linting issues found${NC}"
+            warn "Markdown linting issues found"
         fi
     fi
 fi
 
-# Check for TODO/FIXME comments in staged files
+# ─── Check for TODO/FIXME in staged diff ─────────────────────────────────────
 todo_check=$(git diff --cached | grep -E '^[+].*\b(TODO|FIXME|XXX|HACK)\b' || true)
 if [[ -n "$todo_check" ]]; then
-    echo -e "${YELLOW}Note: Found TODO/FIXME comments in staged changes:${NC}"
-    echo "$todo_check"
+    printf '%b\n' "${YELLOW}Note: Found TODO/FIXME comments in staged changes:${NC}"
+    echo "$todo_check" | head -10
+    remaining=$(( $(echo "$todo_check" | wc -l) - 10 ))
+    if [[ "$remaining" -gt 0 ]]; then
+        echo "  ... and $remaining more"
+    fi
 fi
 
-echo -e "${GREEN}✓ Pre-commit checks completed${NC}"
+# ─── Summary ─────────────────────────────────────────────────────────────────
+if [[ "$warning_count" -gt 0 ]]; then
+    printf '%b\n' "${GREEN}Pre-commit checks completed${NC} ${YELLOW}($warning_count warning(s))${NC}"
+else
+    printf '%b\n' "${GREEN}Pre-commit checks completed${NC}"
+fi

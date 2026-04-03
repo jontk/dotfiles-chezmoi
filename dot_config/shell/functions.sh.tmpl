@@ -265,9 +265,9 @@ repo() {
 # Quick project switcher
 proj() {
   local project
-  project=$(ls -1 ~/src/github.com/jontk/ 2>/dev/null | fzf)
+  project=$(ls -1 ~/src/github.com/{{ .github_username }}/ 2>/dev/null | fzf)
   if [[ -n "$project" ]]; then
-    cd "$HOME/src/github.com/jontk/$project" || return
+    cd "$HOME/src/github.com/{{ .github_username }}/$project" || return
   fi
 }
 
