@@ -25,9 +25,14 @@ jobs:
           shellcheck -x dot_config/kubernetes/kubectl-aliases.sh
           shellcheck -x dot_local/bin/executable_enable-systemd-services.sh
 
-      - name: Shellcheck templates (syntax only)
+      - name: Shellcheck templates
         run: |
-          # Strip chezmoi template directives before linting
+          # Remove lines containing chezmoi template directives, then lint.
+          # This is stricter than replacing directives inline (which leaves
+          # broken syntax like "if ; then"). Lines with {{ }} are removed
+          # entirely, so template-only control flow won't cause parse errors
+          # in most files. Severity set to "warning" to skip style info.
+          errors=0
           for f in run_once_before_10-install-packages.sh.tmpl \
                    run_onchange_15-install-user-tools.sh.tmpl \
                    run_onchange_20-setup-shell.sh.tmpl \
@@ -35,8 +40,16 @@ jobs:
                    dot_config/shell/environment.posix.sh.tmpl \
                    dot_config/shell/functions.sh.tmpl; do
             echo "Checking $f..."
-            sed -E 's/\{\{[^}]*\}\}//g' "$f" | shellcheck -s bash - || true
+            if ! sed -E '/\{\{/d' "$f" | shellcheck -s bash -S warning \
+                -e SC2034 -e SC1073 -e SC1072 -e SC1009 - ; then
+              # SC2034: false positives from stripped template vars
+              # SC1073/1072/1009: parse errors from stripped template control flow
+              errors=$((errors + 1))
+            fi
           done
+          if [ "$errors" -gt 0 ]; then
+            echo "::warning::$errors template(s) had shellcheck warnings"
+          fi
 
       - name: Validate YAML files
         run: |
