@@ -9,7 +9,7 @@
     refreshPeriod = "168h"  # Refresh weekly
     [".vim/autoload/plug.vim".filter]
         command = "sh"
-        args = ["-c", "grep -q 'Plug.*vim-plug' ~/.vimrc 2>/dev/null || echo 'skip'"]
+        args = ["-c", "grep -q 'plug#begin' ~/.vimrc 2>/dev/null || echo 'skip'"]
 
 # Neovim Plugin Manager
 [".local/share/nvim/site/autoload/plug.vim"]

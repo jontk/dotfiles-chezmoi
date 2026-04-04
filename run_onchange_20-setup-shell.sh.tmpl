@@ -43,12 +43,24 @@ if command -v fzf >/dev/null 2>&1; then
     fi
 fi
 
+{{- if .features.editors_full }}
+# Install Vim plugins if vim-plug is available
+if command -v vim >/dev/null 2>&1 && [[ -f ~/.vim/autoload/plug.vim ]]; then
+    echo "Installing Vim plugins..."
+    vim +PlugInstall +PlugUpdate +qall 2>/dev/null || true
+fi
+{{- end }}
+
 {{- if .features.tmux }}
 # Install TPM (Tmux Plugin Manager) if not present
 if [[ ! -d ~/.tmux/plugins/tpm ]]; then
     echo "Installing TPM (Tmux Plugin Manager)..."
     git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-    echo "TPM installed. Run 'prefix + I' in tmux to install plugins."
+fi
+# Install tmux plugins via TPM
+if [[ -x ~/.tmux/plugins/tpm/bin/install_plugins ]]; then
+    echo "Installing tmux plugins..."
+    ~/.tmux/plugins/tpm/bin/install_plugins || true
 fi
 {{- end }}
 
