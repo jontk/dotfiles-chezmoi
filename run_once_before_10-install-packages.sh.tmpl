@@ -41,6 +41,11 @@ brew install --cask docker
 brew install kubectl k9s helm kubectx
 {{- end }}
 
+{{- if .features.fonts }}
+# Nerd Fonts for terminal icons
+brew install --cask font-jetbrains-mono-nerd-font
+{{- end }}
+
 # System tools (not available via eget)
 brew install tree htop watch
 
