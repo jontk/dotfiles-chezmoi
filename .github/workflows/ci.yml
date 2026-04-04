@@ -11,7 +11,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install shellcheck
         run: sudo apt-get install -y shellcheck
@@ -173,7 +173,7 @@ jobs:
             shell_functions: "true"
             editor: "nvim"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install chezmoi
         run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
@@ -321,7 +321,7 @@ jobs:
             editor: "vim"
             verify_extra: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Apply dotfiles (Docker - Ubuntu)
         if: matrix.os == 'ubuntu'
