@@ -2,52 +2,41 @@
 set -e
 
 {{- if eq .chezmoi.os "darwin" }}
-# macOS: Homebrew packages
-if ! command -v brew >/dev/null 2>&1; then
-    echo "Homebrew not found. Please install from https://brew.sh"
-    exit 1
-fi
+# macOS: Package installation is handled by nix-darwin (nixconf).
+# All CLI tools, fonts, and GUI casks are declared in:
+#   nixconf/hosts/macos-laptop/default.nix
+#
+# nix-darwin manages:
+#   - environment.systemPackages (CLI tools via nix)
+#   - homebrew.brews (services: postgresql, redis, nginx; macOS-only tools)
+#   - homebrew.casks (GUI apps: docker, zed, firefox, vscode, etc.)
+#   - fonts.packages (nerd fonts)
+#
+# To apply: darwin-rebuild switch --flake ~/src/github.com/jontk/nixconf
+#
+# The following brew installs are kept commented out as reference for
+# non-nix macOS machines or if nix-darwin is not available.
 
-echo "Installing Homebrew packages for {{ .profile }} profile..."
+# brew install git curl wget
+# brew install tmux reattach-to-user-namespace zellij
+# brew install vim neovim
+# brew install --cask zed
+# brew install python
+# brew install --cask docker
+# brew install kubectl k9s helm kubectx stern kustomize
+# brew install --cask font-jetbrains-mono-nerd-font
+# brew install tree htop watch ncdu duf dust procs tldr
+# brew install nmap mtr
+# brew install make cmake pkg-config
+# brew install p7zip xz
+# brew install tig gitui
+# brew install pandoc texlive ghostscript
+# brew install ffmpeg imagemagick yt-dlp
+# brew install --cask vlc mpv
+# brew install task timewarrior borgbackup syncthing
 
-# Core utilities
-brew install git curl wget
-
-{{- if .features.tmux }}
-# Tmux
-brew install tmux reattach-to-user-namespace
-{{- end }}
-
-{{- if .features.editors_full }}
-# Editors
-brew install vim
-{{- if .features.beta_features }}
-brew install neovim
-{{- end }}
-{{- end }}
-
-{{- if .features.python }}
-# Python (system Python for bootstrapping - uv handles versions)
-brew install python
-{{- end }}
-
-{{- if .features.docker }}
-# Docker
-brew install --cask docker
-{{- end }}
-
-{{- if .features.kubernetes }}
-# Kubernetes tools
-brew install kubectl k9s helm kubectx
-{{- end }}
-
-{{- if .features.fonts }}
-# Nerd Fonts for terminal icons
-brew install --cask font-jetbrains-mono-nerd-font
-{{- end }}
-
-# System tools (not available via eget)
-brew install tree htop watch
+echo "macOS detected — system packages managed by nix-darwin."
+echo "Run 'darwin-rebuild switch --flake ~/src/github.com/jontk/nixconf' to install/update."
 
 {{- else if eq .chezmoi.osRelease.id "fedora" }}
 # Fedora
