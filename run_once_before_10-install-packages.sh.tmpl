@@ -1,34 +1,5 @@
 #!/bin/bash
-# One-time package installation script
-# Runs before chezmoi applies dotfiles
-# Profile: {{ .profile }}
-
 set -e
-
-echo "Installing packages for {{ .profile }} profile on {{ .chezmoi.os }}..."
-
-# Verify SHA256 checksum (supports sha256sum or shasum)
-verify_sha256() {
-    local file="$1"
-    local expected="$2"
-    local actual=""
-
-    if command -v sha256sum >/dev/null 2>&1; then
-        actual=$(sha256sum "$file" | awk '{print $1}')
-    elif command -v shasum >/dev/null 2>&1; then
-        actual=$(shasum -a 256 "$file" | awk '{print $1}')
-    else
-        echo "Warning: sha256sum/shasum not available; cannot verify $file"
-        return 1
-    fi
-
-    if [[ "$actual" != "$expected" ]]; then
-        echo "Error: SHA256 mismatch for $file"
-        echo "  Expected: $expected"
-        echo "  Actual:   $actual"
-        return 1
-    fi
-}
 
 {{- if eq .chezmoi.os "darwin" }}
 # macOS: Homebrew packages
@@ -37,51 +8,41 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Installing Homebrew packages..."
-brew bundle --no-lock --file=/dev/stdin <<EOF
-# Core utilities (essentials - CLI tools installed via eget in user-space)
-brew "git"
-brew "curl"
-brew "wget"
+echo "Installing Homebrew packages for {{ .profile }} profile..."
+
+# Core utilities
+brew install git curl wget
 
 {{- if .features.tmux }}
 # Tmux
-brew "tmux"
-brew "reattach-to-user-namespace"
+brew install tmux reattach-to-user-namespace
 {{- end }}
 
 {{- if .features.editors_full }}
 # Editors
-brew "vim"
+brew install vim
 {{- if .features.beta_features }}
-brew "neovim"
+brew install neovim
 {{- end }}
 {{- end }}
 
 {{- if .features.python }}
 # Python (system Python for bootstrapping - uv handles versions)
-brew "python"
+brew install python
 {{- end }}
 
 {{- if .features.docker }}
 # Docker
-cask "docker"
+brew install --cask docker
 {{- end }}
 
 {{- if .features.kubernetes }}
 # Kubernetes tools
-brew "kubectl"
-brew "k9s"
-brew "helm"
-brew "kubectx"
+brew install kubectl k9s helm kubectx
 {{- end }}
 
 # System tools (not available via eget)
-brew "tree"
-brew "htop"
-brew "watch"
-
-EOF
+brew install tree htop watch
 
 {{- else if eq .chezmoi.osRelease.id "fedora" }}
 # Fedora
