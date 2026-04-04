@@ -53,15 +53,15 @@ truncate_to_repo = false
 
 [directory.substitutions]
 "Documents" = "󰈙 "
-"Downloads" = " "
-"Music" = " "
-"Pictures" = " "
-"Desktop" = " "
+"Downloads" = "󰉍 "
+"Music" = "󰝚 "
+"Pictures" = "󰉏 "
+"Desktop" = "󰇄 "
 "Projects" = "󰲋 "
 
 # Git configuration
 [git_branch]
-symbol = " "
+symbol = "󰘬 "
 style = "bold purple"
 format = "[$symbol$branch]($style) "
 
@@ -93,27 +93,27 @@ disabled = false
 
 # Language and tool modules
 [nodejs]
-symbol = " "
+symbol = "󰎙 "
 style = "bold green"
 format = "[$symbol($version )]($style)"
 
 [python]
-symbol = " "
+symbol = "󰌠 "
 style = "bold yellow"
 format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
 
 [rust]
-symbol = " "
+symbol = "󱘗 "
 style = "bold red"
 format = "[$symbol($version )]($style)"
 
 [golang]
-symbol = " "
+symbol = "󰟓 "
 style = "bold cyan"
 format = "[$symbol($version )]($style)"
 
 [java]
-symbol = " "
+symbol = "󰬷 "
 style = "bold orange"
 format = "[$symbol($version )]($style)"
 
@@ -124,7 +124,7 @@ format = "[$symbol$version]($style) "
 
 # Docker and cloud tools
 [docker_context]
-symbol = " "
+symbol = "󰡨 "
 style = "bold blue"
 format = "[$symbol$context]($style) "
 
@@ -135,7 +135,7 @@ format = '[$symbol$context( \($namespace\))]($style) '
 disabled = false
 
 [aws]
-symbol = " "
+symbol = "󰸏 "
 style = "bold orange"
 format = '[$symbol($profile )(\($region\) )]($style)'
 
@@ -177,16 +177,16 @@ format = "[$duration]($style) "
 disabled = false
 threshold = 75
 style = "bold dimmed red"
-symbol = " "
+symbol = "󰍛 "
 format = "$symbol[$ram( | $swap)]($style) "
 
 # Battery
 [battery]
-full_symbol = " "
-charging_symbol = " "
-discharging_symbol = " "
-unknown_symbol = " "
-empty_symbol = " "
+full_symbol = "󰁹 "
+charging_symbol = "󰂄 "
+discharging_symbol = "󰂃 "
+unknown_symbol = "󰁽 "
+empty_symbol = "󰂎 "
 
 [[battery.display]]
 threshold = 10
@@ -202,39 +202,39 @@ style = "bold white"
 disabled = false
 
 [os.symbols]
-Alpine = " "
-Amazon = " "
-Android = " "
-Arch = " "
-CentOS = " "
-Debian = " "
-DragonFly = " "
-Emscripten = " "
-EndeavourOS = " "
-Fedora = " "
-FreeBSD = " "
+Alpine = "󰸛 "
+Amazon = "󰸏 "
+Android = "󰀲 "
+Arch = "󰣇 "
+CentOS = "󱄚 "
+Debian = "󰣚 "
+DragonFly = "󱖃 "
+Emscripten = "󰜗 "
+EndeavourOS = "󰣠 "
+Fedora = "󰣛 "
+FreeBSD = "󰣠 "
 Garuda = "󰛓 "
-Gentoo = " "
+Gentoo = "󰣨 "
 HardenedBSD = "󰞌 "
 Illumos = "󰈸 "
-Linux = " "
-Macos = " "
-Manjaro = " "
-Mariner = " "
-MidnightBSD = " "
-Mint = " "
-NetBSD = " "
-NixOS = " "
+Linux = "󰌽 "
+Macos = "󰀵 "
+Manjaro = "󱘊 "
+Mariner = "󰀵 "
+MidnightBSD = "󰽥 "
+Mint = "󰣭 "
+NetBSD = "󰈻 "
+NixOS = "󱄅 "
 OpenBSD = "󰈺 "
-openSUSE = " "
+openSUSE = "󰣲 "
 OracleLinux = "󰌷 "
-Pop = " "
-Raspbian = " "
-Redhat = " "
-RedHatEnterprise = " "
+Pop = "󰏒 "
+Raspbian = "󰌕 "
+Redhat = "󱄛 "
+RedHatEnterprise = "󱄛 "
 Redox = "󰀘 "
 Solus = "󰠳 "
-SUSE = " "
-Ubuntu = " "
-Unknown = " "
+SUSE = "󰣲 "
+Ubuntu = "󰕈 "
+Unknown = "󰻀 "
 Windows = "󰍲 "
