@@ -2,6 +2,9 @@
 # Managed by chezmoi - Profile: {{ .profile }}
 # Security-focused SSH configuration with best practices
 
+# Local overrides (not managed by chezmoi)
+Include ~/.ssh/config.local
+
 # Global defaults for all hosts
 Host *
     # Automatically add keys to ssh-agent
@@ -44,7 +47,6 @@ Host github.com
     IdentityFile {{ .git.githubKey }}
 {{- else }}
     IdentityFile ~/.ssh/id_ed25519
-    IdentityFile ~/.ssh/id_rsa
 {{- end }}
 
 # GitLab configuration
@@ -55,7 +57,6 @@ Host gitlab.com
     IdentityFile {{ .git.gitlabKey }}
 {{- else }}
     IdentityFile ~/.ssh/id_ed25519
-    IdentityFile ~/.ssh/id_rsa
 {{- end }}
 
 {{- if .features.work_specific }}
@@ -70,5 +71,3 @@ Host *.work.internal work-*
     StrictHostKeyChecking yes
 {{- end }}
 
-# Add custom SSH configurations below (not managed by chezmoi)
-Include ~/.ssh/config.local
