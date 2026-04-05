@@ -305,6 +305,9 @@ install_npm_global "{{ .tools.gemini_cli.package }}" "gemini"
 
 # Codex - OpenAI's AI coding assistant
 install_npm_global "{{ .tools.codex.package }}" "codex"
+
+# Playwright CLI - browser automation for coding agents
+install_npm_global "{{ .tools.playwright_cli.package }}" "playwright-cli"
 {{- end }}
 
 {{- if .features.python }}

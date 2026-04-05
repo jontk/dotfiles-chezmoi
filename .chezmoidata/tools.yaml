@@ -80,6 +80,8 @@ tools:
     package: "@google/gemini-cli"
   codex:
     package: "@openai/codex"
+  playwright_cli:
+    package: "@playwright/cli"
 
   # Go development tools (installed via go install)
   go_tools:
