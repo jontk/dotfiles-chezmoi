@@ -7,27 +7,18 @@
     type = "file"
     url = "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
     refreshPeriod = "168h"  # Refresh weekly
-    [".vim/autoload/plug.vim".filter]
-        command = "sh"
-        args = ["-c", "grep -q 'plug#begin' ~/.vimrc 2>/dev/null || echo 'skip'"]
 
 # Neovim Plugin Manager
 [".local/share/nvim/site/autoload/plug.vim"]
     type = "file"
     url = "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
     refreshPeriod = "168h"
-    [".local/share/nvim/site/autoload/plug.vim".filter]
-        command = "sh"
-        args = ["-c", "test -f ~/.config/nvim/init.lua || test -f ~/.config/nvim/init.vim"]
 
 # Tmux Plugin Manager
 [".config/tmux/plugins/tpm"]
     type = "git-repo"
     url = "https://github.com/tmux-plugins/tpm.git"
     refreshPeriod = "168h"
-    [".config/tmux/plugins/tpm".filter]
-        command = "sh"
-        args = ["-c", "test -f ~/.tmux.conf || test -f ~/.config/tmux/tmux.conf"]
 
 # Bash Git Prompt (optional optimization)
 [".local/share/git-prompt.sh"]
