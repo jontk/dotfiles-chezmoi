@@ -197,19 +197,17 @@ local plugins = {
     {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
-        config = function()
-            require("nvim-treesitter.configs").setup({
-                ensure_installed = {
-                    "lua", "vim", "vimdoc", "query",
-                    "javascript", "typescript", "python", "go", "rust",
-                    "html", "css", "json", "yaml", "toml", "markdown",
-                    "bash", "dockerfile", "gitignore"
-                },
-                auto_install = true,
-                highlight = { enable = true },
-                indent = { enable = true },
-            })
-        end,
+        opts = {
+            ensure_installed = {
+                "lua", "vim", "vimdoc", "query",
+                "javascript", "typescript", "python", "go", "rust",
+                "html", "css", "json", "yaml", "toml", "markdown",
+                "bash", "dockerfile", "gitcommit"
+            },
+            auto_install = true,
+            highlight = { enable = true },
+            indent = { enable = true },
+        },
     },
     
     -- LSP Configuration
@@ -225,24 +223,24 @@ local plugins = {
             require("mason").setup()
             require("mason-lspconfig").setup({
                 ensure_installed = {
-                    "lua_ls", "tsserver", "pyright", "gopls", "rust_analyzer"
+                    "lua_ls", "ts_ls", "pyright", "gopls", "rust_analyzer"
                 },
             })
             
-            local lspconfig = require("lspconfig")
             local capabilities = require("cmp_nvim_lsp").default_capabilities()
-            
-            -- Configure LSP servers
+
+            -- Configure LSP servers (vim.lsp.config API for nvim 0.11+)
             local servers = {
-                "lua_ls", "tsserver", "pyright", "gopls", "rust_analyzer",
+                "lua_ls", "ts_ls", "pyright", "gopls", "rust_analyzer",
                 "html", "cssls", "jsonls", "yamlls"
             }
-            
+
             for _, server in ipairs(servers) do
-                lspconfig[server].setup({
+                vim.lsp.config(server, {
                     capabilities = capabilities,
                 })
             end
+            vim.lsp.enable(servers)
         end,
     },
     
