@@ -35,6 +35,10 @@ Library/
 .config/go/
 {{- end }}
 
+{{- if not (and (hasKey .features "gpg_agent_ssh") .features.gpg_agent_ssh) }}
+.config/systemd/user/gpg-agent-ssh.socket
+{{- end }}
+
 {{- if not .features.starship }}
 .config/starship.toml
 {{- end }}
