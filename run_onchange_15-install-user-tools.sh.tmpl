@@ -190,11 +190,23 @@ elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
 fi
 
 install_cli_tool "rg" "{{ .tools.ripgrep.repo }}" "{{ .tools.ripgrep.version }}" "{{ .tools.ripgrep.version }}" "$RG_ASSET"
-install_cli_tool "fd" "{{ .tools.fd.repo }}" "{{ .tools.fd.version }}" "v{{ .tools.fd.version }}" "$FD_ASSET"
+if [[ -n "$FD_ASSET" ]]; then
+    install_cli_tool "fd" "{{ .tools.fd.repo }}" "{{ .tools.fd.version }}" "v{{ .tools.fd.version }}" "$FD_ASSET"
+elif [[ "$OS" == "darwin" ]]; then
+    echo "  Skipping fd (no macOS x86_64 binary — install via 'brew install fd')"
+fi
 install_cli_tool "bat" "{{ .tools.bat.repo }}" "{{ .tools.bat.version }}" "v{{ .tools.bat.version }}" "$BAT_ASSET"
-install_cli_tool "eza" "{{ .tools.eza.repo }}" "{{ .tools.eza.version }}" "v{{ .tools.eza.version }}" "$EZA_ASSET"
+if [[ -n "$EZA_ASSET" ]]; then
+    install_cli_tool "eza" "{{ .tools.eza.repo }}" "{{ .tools.eza.version }}" "v{{ .tools.eza.version }}" "$EZA_ASSET"
+elif [[ "$OS" == "darwin" ]]; then
+    echo "  Skipping eza (no macOS binary available — install via 'brew install eza')"
+fi
 install_cli_tool "fzf" "{{ .tools.fzf.repo }}" "{{ .tools.fzf.version }}" "v{{ .tools.fzf.version }}" "$FZF_ASSET"
-install_cli_tool "delta" "{{ .tools.delta.repo }}" "{{ .tools.delta.version }}" "{{ .tools.delta.version }}" "$DELTA_ASSET"
+if [[ -n "$DELTA_ASSET" ]]; then
+    install_cli_tool "delta" "{{ .tools.delta.repo }}" "{{ .tools.delta.version }}" "{{ .tools.delta.version }}" "$DELTA_ASSET"
+elif [[ "$OS" == "darwin" ]]; then
+    echo "  Skipping delta (no macOS x86_64 binary — install via 'brew install git-delta')"
+fi
 install_cli_tool "lazygit" "{{ .tools.lazygit.repo }}" "{{ .tools.lazygit.version }}" "v{{ .tools.lazygit.version }}" "$LAZYGIT_ASSET"
 install_cli_tool "jq" "{{ .tools.jq.repo }}" "{{ .tools.jq.version }}" "jq-{{ .tools.jq.version }}" "$JQ_ASSET"
 install_cli_tool "yq" "{{ .tools.yq.repo }}" "{{ .tools.yq.version }}" "v{{ .tools.yq.version }}" "$YQ_ASSET"
