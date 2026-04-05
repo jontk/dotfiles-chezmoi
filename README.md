@@ -92,24 +92,124 @@ chezmoi apply
 ## Directory Structure
 
 ```
-~/.local/share/chezmoi/          # Chezmoi source directory
-├── .chezmoi.toml.tmpl           # Machine-specific configuration prompts
-├── .chezmoidata/                # Shared data
-│   └── profiles.yaml            # Profile definitions
-├── .chezmoiignore               # OS/profile-specific ignores
-├── dot_bashrc.tmpl              # Bash configuration template
-├── dot_zshrc.tmpl               # Zsh configuration template
-├── dot_gitconfig.tmpl           # Git configuration template
-├── dot_gitignore_global         # Global gitignore
-├── dot_tmux.conf.tmpl           # Tmux configuration
+├── .chezmoi.toml.tmpl              # Profile selection and feature flags
+├── .chezmoidata/
+│   ├── profiles.yaml               # Profile definitions
+│   └── tools.yaml                  # Version pinning for all user-space tools
+├── .chezmoiexternal.toml           # External dependencies (vim-plug, TPM, shell completions)
+├── .chezmoiignore                  # OS/profile-specific file exclusions
+│
+├── run_once_before_10-install-packages.sh.tmpl  # System packages (apt/dnf/nix)
+├── run_onchange_15-install-user-tools.sh.tmpl   # User-space CLI tools
+├── run_onchange_20-setup-shell.sh.tmpl          # Post-install shell setup
+│
+├── dot_bashrc.tmpl                 # Bash configuration
+├── dot_zshrc.tmpl                  # Zsh configuration
+├── dot_gitconfig.tmpl              # Git configuration
+├── dot_tmux.conf.tmpl              # Tmux configuration
+├── dot_vimrc                       # Vim configuration
+│
 ├── dot_config/
-│   ├── shell/
-│   │   ├── aliases.sh           # Shared shell aliases
-│   │   └── functions.sh.tmpl    # Shell functions (profile-aware)
-│   └── starship.toml            # Starship prompt configuration
-├── run_once_before_10-install-packages.sh.tmpl  # One-time package install
-└── run_onchange_20-setup-shell.sh.tmpl          # Shell setup script
+│   ├── shell/                      # Shared aliases, functions, environment
+│   ├── nvim/                       # Neovim (init.lua + keymaps)
+│   ├── starship.toml               # Starship prompt
+│   ├── alacritty/                  # Alacritty terminal
+│   ├── kitty/                      # Kitty terminal
+│   ├── ghostty/                    # Ghostty terminal
+│   ├── docker/                     # Docker config
+│   ├── kubernetes/                 # Kubernetes config
+│   └── ...                         # sway, waybar, dunst, gtk, etc.
+│
+├── private_dot_ssh/                # SSH configuration
+└── private_dot_gnupg/              # GPG agent configuration
 ```
+
+## User-Space Tools
+
+For **personal**, **work**, and **experimental** profiles, a comprehensive set of CLI tools is installed to `~/.local/bin/` and language-specific directories. Tool versions are pinned in `.chezmoidata/tools.yaml`.
+
+### Installation Pipeline
+
+The installation runs in three stages:
+
+1. **System packages** (`run_once_before_10-install-packages.sh.tmpl`) — OS package manager installs (apt, dnf, or nix-darwin)
+2. **User-space tools** (`run_onchange_15-install-user-tools.sh.tmpl`) — binary downloads and language toolchains
+3. **Shell setup** (`run_onchange_20-setup-shell.sh.tmpl`) — fzf keybindings, tmux plugins, Node.js LTS
+
+### CLI Tools (via eget)
+
+[eget](https://github.com/zyedidia/eget) downloads pre-built binaries from GitHub releases:
+
+| Tool | Description |
+|------|-------------|
+| ripgrep | Fast recursive search |
+| fd | Fast file finder |
+| bat | Cat with syntax highlighting |
+| eza | Modern ls replacement |
+| fzf | Fuzzy finder |
+| delta | Git diff viewer |
+| lazygit | Terminal UI for git |
+| jq / yq | JSON/YAML processors |
+| zoxide | Smarter cd |
+| gh | GitHub CLI |
+| starship | Cross-shell prompt |
+| buf | Protobuf toolchain |
+| vhs | Terminal GIF recorder |
+| cilium-cli | Cilium networking CLI |
+
+### Language Toolchains
+
+| Tool | Purpose | Install method |
+|------|---------|----------------|
+| fnm | Node.js version manager | eget binary |
+| bun | JavaScript runtime/package manager | Official installer |
+| uv | Python package/version manager | Official installer |
+| Go | Go toolchain | Direct download from go.dev |
+| rustup | Rust toolchain manager | Official installer |
+| rbenv | Ruby version manager | Git clone |
+| SDKMAN | JVM version manager | Official installer |
+| Spack | Compiler package manager | Git clone |
+
+### Go Development Tools (via `go install`)
+
+Installed when the `golang` feature is enabled:
+
+- **Linters**: golangci-lint, staticcheck, gosec, revive, gocyclo, ineffassign, unconvert, misspell
+- **Testing**: mockgen, mockery, ginkgo
+- **Code generation**: sqlc, gqlgen, goverter, oapi-codegen, controller-gen
+- **Protobuf**: protoc-gen-go, protoc-gen-go-grpc, protoc-gen-grpc-gateway, protoc-gen-openapiv2, protoc-gen-doc
+- **Release**: goreleaser
+
+### AI Coding Assistants (via `bun install -g`)
+
+| Package | Command |
+|---------|---------|
+| @anthropic-ai/claude-code | `claude` |
+| @google/gemini-cli | `gemini` |
+| @openai/codex | `codex` |
+| @playwright/cli | `playwright-cli` |
+
+### Nerd Fonts
+
+JetBrainsMono, FiraCode, and Hack Nerd Fonts are installed to the system font directory.
+
+### Adding or Updating a Tool
+
+1. Add or update the version in `.chezmoidata/tools.yaml`
+2. If it's a new tool, add the install logic to `run_onchange_15-install-user-tools.sh.tmpl`
+3. Run `chezmoi apply` — the version hash change triggers re-installation
+
+### External Dependencies
+
+`.chezmoiexternal.toml` manages git repos and remote files that chezmoi fetches automatically:
+
+| Dependency | Path | Refresh |
+|------------|------|---------|
+| vim-plug | `~/.vim/autoload/plug.vim` | Weekly |
+| TPM (tmux plugin manager) | `~/.config/tmux/plugins/tpm` | Weekly |
+| git-prompt.sh | `~/.config/shell/git-prompt.sh` | Monthly |
+| git-completion.bash | `~/.config/shell/git-completion.bash` | Monthly |
+| zsh git completion | `~/.config/shell/_git` | Monthly |
 
 ## Features by Profile
 
@@ -154,10 +254,10 @@ chezmoi apply
 ## Platform Support
 
 Tested on:
-- **macOS**: Homebrew package management
+- **macOS**: nix-darwin for system packages; user-space tools installed independently
 - **Fedora/RHEL/Rocky/AlmaLinux**: DNF package management
 - **Ubuntu/Debian**: APT package management
-- **NixOS**: System packages managed declaratively; user-space tools (cargo, uv, eget, starship, etc.) installed independently
+- **NixOS**: System packages managed declaratively; user-space tools installed independently
 
 Platform-specific configurations are handled automatically through chezmoi templates.
 
@@ -210,33 +310,6 @@ chezmoi add ~/mynewfile
 # Add as a template (if it needs variable substitution)
 chezmoi add --template ~/mynewfile
 ```
-
-## Migration from Old Dotfiles
-
-If you're migrating from the old bash-based dotfiles repository:
-
-1. **Backup your current setup**:
-   ```bash
-   cd ~/dotfiles
-   ./install.sh --dry-run  # Verify current state
-   ```
-
-2. **Initialize chezmoi** (this repository):
-   ```bash
-   chezmoi init --apply jontk/dotfiles-chezmoi
-   ```
-
-3. **Verify**:
-   ```bash
-   chezmoi diff
-   ```
-
-4. **Keep old repo as reference**:
-   ```bash
-   mv ~/dotfiles ~/dotfiles.old
-   ```
-
-The old repository remains unchanged and can serve as a reference or fallback.
 
 ## Troubleshooting
 
@@ -292,7 +365,3 @@ MIT License - See LICENSE file for details
 ## Author
 
 Jon Thor Kristinsson - [GitHub](https://github.com/jontk)
-
----
-
-**Note**: This is a migration of my [original bash-based dotfiles](https://github.com/jontk/dotfiles) to chezmoi for better reproducibility and multi-machine management.
