@@ -53,6 +53,11 @@ Library/
 .config/nvim/
 {{- end }}
 
+{{- if or (eq .profile "minimal") (eq .profile "server") }}
+# Skip Claude Code config on minimal/server profiles
+.claude/
+{{- end }}
+
 {{- if eq .profile "minimal" }}
 # Minimal profile - ignore everything except shell and git
 .config/nvim/
