@@ -141,7 +141,7 @@ if [[ "$ARCH" == "x86_64" ]]; then
     EZA_ASSET="eza_x86_64-unknown-linux-gnu.tar.gz"
     FZF_ASSET="fzf-{{ .tools.fzf.version }}-linux_amd64.tar.gz"
     DELTA_ASSET="delta-{{ .tools.delta.version }}-x86_64-unknown-linux-gnu.tar.gz"
-    LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_Linux_x86_64.tar.gz"
+    LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_linux_x86_64.tar.gz"
     JQ_ASSET="jq-linux-amd64"
     YQ_ASSET="yq_linux_amd64"
     ZOXIDE_ASSET="zoxide-{{ .tools.zoxide.version }}-x86_64-unknown-linux-musl.tar.gz"
@@ -154,7 +154,7 @@ elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
     EZA_ASSET="eza_aarch64-unknown-linux-gnu.tar.gz"
     FZF_ASSET="fzf-{{ .tools.fzf.version }}-linux_arm64.tar.gz"
     DELTA_ASSET="delta-{{ .tools.delta.version }}-aarch64-unknown-linux-gnu.tar.gz"
-    LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_Linux_arm64.tar.gz"
+    LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_linux_arm64.tar.gz"
     JQ_ASSET="jq-linux-arm64"
     YQ_ASSET="yq_linux_arm64"
     ZOXIDE_ASSET="zoxide-{{ .tools.zoxide.version }}-aarch64-unknown-linux-musl.tar.gz"
@@ -546,7 +546,7 @@ if [[ "$ZIG_INSTALLED" != "$ZIG_VERSION" ]]; then
         ZIG_ARCH="aarch64"
     fi
 
-    ZIG_URL="https://ziglang.org/download/${ZIG_VERSION}/zig-${OS}-${ZIG_ARCH}-${ZIG_VERSION}.tar.xz"
+    ZIG_URL="https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-${OS}-${ZIG_VERSION}.tar.xz"
     ZIG_TMP="/tmp/zig-${ZIG_VERSION}.tar.xz"
 
     if curl -fsSL "$ZIG_URL" -o "$ZIG_TMP" 2>/dev/null; then
