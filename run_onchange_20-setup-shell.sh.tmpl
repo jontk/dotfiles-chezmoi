@@ -44,10 +44,10 @@ if command -v fzf >/dev/null 2>&1; then
 fi
 
 {{- if .features.editors_full }}
-# Install Vim plugins if vim-plug is available
+# Install Vim plugins if vim-plug is available (timeout after 60s to avoid blocking)
 if command -v vim >/dev/null 2>&1 && [[ -f ~/.vim/autoload/plug.vim ]]; then
     echo "Installing Vim plugins..."
-    vim +PlugInstall +PlugUpdate +qall 2>/dev/null || true
+    timeout 60 vim +PlugInstall +PlugUpdate +qall 2>/dev/null || echo "Vim plugin install timed out or failed — run 'vim +PlugInstall' manually"
 fi
 {{- end }}
 

@@ -23,12 +23,6 @@ echo "Skipping user-space tool installation for {{ .profile }} profile"
 exit 0
 {{- end }}
 
-# Check if remote installs are allowed
-if [[ "${CHEZMOI_ALLOW_REMOTE_INSTALL:-}" != "1" ]]; then
-    echo "Skipping user-space tool installation (set CHEZMOI_ALLOW_REMOTE_INSTALL=1 to enable)"
-    exit 0
-fi
-
 # Check for internet connectivity
 check_connectivity() {
     if ! curl -fsSL --connect-timeout 5 https://github.com >/dev/null 2>&1; then
