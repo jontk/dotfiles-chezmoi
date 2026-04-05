@@ -6,14 +6,16 @@ Requires=gpg-agent.socket
 [Service]
 Type=simple
 {{- if stat "/run/current-system/sw/bin/gpg-agent" }}
-ExecStart=/run/current-system/sw/bin/gpg-agent --supervised --enable-ssh-support
+ExecStart=/run/current-system/sw/bin/gpg-agent --supervised{{ if and (hasKey .features "gpg_agent_ssh") .features.gpg_agent_ssh }} --enable-ssh-support{{ end }}
 ExecReload=/run/current-system/sw/bin/gpgconf --reload gpg-agent
 {{- else }}
-ExecStart=/usr/bin/gpg-agent --supervised --enable-ssh-support
+ExecStart=/usr/bin/gpg-agent --supervised{{ if and (hasKey .features "gpg_agent_ssh") .features.gpg_agent_ssh }} --enable-ssh-support{{ end }}
 ExecReload=/usr/bin/gpgconf --reload gpg-agent
 {{- end }}
 Environment="GNUPGHOME=%h/.local/share/gnupg"
 
 [Install]
+{{- if and (hasKey .features "gpg_agent_ssh") .features.gpg_agent_ssh }}
 Also=gpg-agent-ssh.socket
+{{- end }}
 WantedBy=default.target

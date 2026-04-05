@@ -160,6 +160,15 @@ export RIPGREP_CONFIG_PATH="${RIPGREP_CONFIG_PATH:-$XDG_CONFIG_HOME/ripgrep/conf
 export INPUTRC="${INPUTRC:-$XDG_CONFIG_HOME/readline/inputrc}"
 export GNUPGHOME="${GNUPGHOME:-$XDG_DATA_HOME/gnupg}"
 export GPG_TTY=$(tty 2>/dev/null || echo "not-a-tty")
+{{- if and (hasKey .features "gpg_agent_ssh") .features.gpg_agent_ssh }}
+# Use gpg-agent as SSH agent
+export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+{{- else }}
+# Use system SSH agent (gcr-ssh-agent or ssh-agent)
+if [[ -S "/run/user/$(id -u)/gcr/ssh" ]]; then
+    export SSH_AUTH_SOCK="/run/user/$(id -u)/gcr/ssh"
+fi
+{{- end }}
 
 {{- if .features.docker }}
 # Docker configuration

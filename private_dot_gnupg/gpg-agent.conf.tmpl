@@ -5,8 +5,14 @@
 default-cache-ttl 600
 max-cache-ttl 7200
 
+{{- if and (hasKey .features "gpg_agent_ssh") .features.gpg_agent_ssh }}
+# SSH key cache settings (in seconds)
+default-cache-ttl-ssh 28800
+max-cache-ttl-ssh 28800
+
 # Enable SSH agent support
 enable-ssh-support
+{{- end }}
 
 # Use pinentry program based on environment
 {{- if eq .chezmoi.os "darwin" }}
