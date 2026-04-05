@@ -44,10 +44,10 @@ if command -v fzf >/dev/null 2>&1; then
 fi
 
 {{- if .features.editors_full }}
-# Install Vim plugins if vim-plug is available (timeout after 60s to avoid blocking)
+# Vim plugins: vim-plug is managed by .chezmoiexternal.toml
+# Run 'vim +PlugInstall' manually after first setup — headless vim is unreliable in scripts
 if command -v vim >/dev/null 2>&1 && [[ -f ~/.vim/autoload/plug.vim ]]; then
-    echo "Installing Vim plugins..."
-    timeout 60 vim +PlugInstall +PlugUpdate +qall 2>/dev/null || echo "Vim plugin install timed out or failed — run 'vim +PlugInstall' manually"
+    echo "Vim plugin manager (vim-plug) is installed. Run 'vim +PlugInstall' to install plugins."
 fi
 {{- end }}
 
