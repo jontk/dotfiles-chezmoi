@@ -132,9 +132,36 @@ install_cli_tool() {
 # Args: name, repo, version, tag_format, asset_pattern
 # Use specific asset patterns to avoid interactive prompts
 
-# Architecture-specific asset patterns
-# Note: Some tools only provide musl builds (ripgrep, zoxide) - musl is statically linked and works everywhere
-if [[ "$ARCH" == "x86_64" ]]; then
+# OS and architecture-specific asset patterns
+if [[ "$OS" == "darwin" ]]; then
+    if [[ "$ARCH" == "x86_64" ]]; then
+        RG_ASSET="ripgrep-{{ .tools.ripgrep.version }}-x86_64-apple-darwin.tar.gz"
+        FD_ASSET=""  # No x86_64 macOS binary — eget auto-detects
+        BAT_ASSET="bat-v{{ .tools.bat.version }}-x86_64-apple-darwin.tar.gz"
+        EZA_ASSET=""  # No macOS binary available
+        FZF_ASSET="fzf-{{ .tools.fzf.version }}-darwin_amd64.tar.gz"
+        DELTA_ASSET=""  # No x86_64 macOS binary — eget auto-detects
+        LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_darwin_x86_64.tar.gz"
+        JQ_ASSET="jq-macos-amd64"
+        YQ_ASSET="yq_darwin_amd64"
+        ZOXIDE_ASSET="zoxide-{{ .tools.zoxide.version }}-x86_64-apple-darwin.tar.gz"
+        GH_ASSET="gh_{{ .tools.gh.version }}_macOS_amd64.zip"
+        STARSHIP_ASSET="starship-x86_64-apple-darwin.tar.gz"
+    else
+        RG_ASSET="ripgrep-{{ .tools.ripgrep.version }}-aarch64-apple-darwin.tar.gz"
+        FD_ASSET="fd-v{{ .tools.fd.version }}-aarch64-apple-darwin.tar.gz"
+        BAT_ASSET="bat-v{{ .tools.bat.version }}-aarch64-apple-darwin.tar.gz"
+        EZA_ASSET=""  # No macOS binary available
+        FZF_ASSET="fzf-{{ .tools.fzf.version }}-darwin_arm64.tar.gz"
+        DELTA_ASSET="delta-{{ .tools.delta.version }}-aarch64-apple-darwin.tar.gz"
+        LAZYGIT_ASSET="lazygit_{{ .tools.lazygit.version }}_darwin_arm64.tar.gz"
+        JQ_ASSET="jq-macos-arm64"
+        YQ_ASSET="yq_darwin_arm64"
+        ZOXIDE_ASSET="zoxide-{{ .tools.zoxide.version }}-aarch64-apple-darwin.tar.gz"
+        GH_ASSET="gh_{{ .tools.gh.version }}_macOS_arm64.zip"
+        STARSHIP_ASSET="starship-aarch64-apple-darwin.tar.gz"
+    fi
+elif [[ "$ARCH" == "x86_64" ]]; then
     RG_ASSET="ripgrep-{{ .tools.ripgrep.version }}-x86_64-unknown-linux-musl.tar.gz"
     FD_ASSET="fd-v{{ .tools.fd.version }}-x86_64-unknown-linux-gnu.tar.gz"
     BAT_ASSET="bat-v{{ .tools.bat.version }}-x86_64-unknown-linux-gnu.tar.gz"
@@ -175,7 +202,17 @@ install_cli_tool "zoxide" "{{ .tools.zoxide.repo }}" "{{ .tools.zoxide.version }
 install_cli_tool "gh" "{{ .tools.gh.repo }}" "{{ .tools.gh.version }}" "v{{ .tools.gh.version }}" "$GH_ASSET"
 
 # Additional dev tools
-if [[ "$ARCH" == "x86_64" ]]; then
+if [[ "$OS" == "darwin" ]]; then
+    if [[ "$ARCH" == "x86_64" ]]; then
+        BUF_ASSET="buf-Darwin-x86_64"
+        VHS_ASSET="vhs_{{ .tools.vhs.version }}_Darwin_x86_64.tar.gz"
+        CILIUM_ASSET="cilium-darwin-amd64.tar.gz"
+    else
+        BUF_ASSET="buf-Darwin-arm64"
+        VHS_ASSET="vhs_{{ .tools.vhs.version }}_Darwin_arm64.tar.gz"
+        CILIUM_ASSET="cilium-darwin-arm64.tar.gz"
+    fi
+elif [[ "$ARCH" == "x86_64" ]]; then
     BUF_ASSET="buf-Linux-x86_64"
     VHS_ASSET="vhs_{{ .tools.vhs.version }}_Linux_x86_64.tar.gz"
     CILIUM_ASSET="cilium-linux-amd64.tar.gz"
@@ -546,7 +583,13 @@ if [[ "$ZIG_INSTALLED" != "$ZIG_VERSION" ]]; then
         ZIG_ARCH="aarch64"
     fi
 
-    ZIG_URL="https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-${OS}-${ZIG_VERSION}.tar.xz"
+    # Zig uses 'macos' not 'darwin'
+    if [[ "$OS" == "darwin" ]]; then
+        ZIG_OS="macos"
+    else
+        ZIG_OS="$OS"
+    fi
+    ZIG_URL="https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-${ZIG_OS}-${ZIG_VERSION}.tar.xz"
     ZIG_TMP="/tmp/zig-${ZIG_VERSION}.tar.xz"
 
     if curl -fsSL "$ZIG_URL" -o "$ZIG_TMP" 2>/dev/null; then
@@ -584,30 +627,29 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Alacritty (via cargo)
-# Requires system deps: cmake pkg-config libfreetype6-dev libfontconfig1-dev
-#                       libxcb-xfixes0-dev libxkbcommon-dev python3
-# Ubuntu/Debian: apt install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev python3
-# Fedora: dnf install cmake freetype-devel fontconfig-devel libxcb-devel libxkbcommon-devel python3
+# Alacritty (via cargo on Linux, brew cask on macOS)
 # -----------------------------------------------------------------------------
 ALACRITTY_VERSION="{{ .tools.alacritty.version }}"
 ALACRITTY_INSTALLED=$(alacritty --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "not-installed")
 
 if [[ "$ALACRITTY_INSTALLED" != "$ALACRITTY_VERSION" ]]; then
-    # Ensure cargo is in PATH
-    source "${CARGO_HOME:-$HOME/.local/share/cargo}/env" 2>/dev/null || true
-
-    # Check for required system dependencies
-    if ! pkg-config --exists freetype2 fontconfig 2>/dev/null; then
-        echo "  Skipping Alacritty (missing system deps: freetype, fontconfig)"
-        echo "    Install with: apt install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev"
-    elif command -v cargo >/dev/null 2>&1; then
-        echo "  Installing Alacritty v${ALACRITTY_VERSION} (this may take several minutes)..."
-        cargo install alacritty --version "${ALACRITTY_VERSION}" --locked 2>/dev/null && \
-            echo "    Alacritty v${ALACRITTY_VERSION} installed" || \
-            echo "    Failed to install Alacritty"
+    if [[ "$OS" == "darwin" ]]; then
+        echo "  Skipping Alacritty (install via 'brew install --cask alacritty' on macOS)"
     else
-        echo "  Skipping Alacritty (cargo not available)"
+        # Ensure cargo is in PATH
+        source "${CARGO_HOME:-$HOME/.local/share/cargo}/env" 2>/dev/null || true
+
+        if ! pkg-config --exists freetype2 fontconfig 2>/dev/null; then
+            echo "  Skipping Alacritty (missing system deps: freetype, fontconfig)"
+            echo "    Install with: apt install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev"
+        elif command -v cargo >/dev/null 2>&1; then
+            echo "  Installing Alacritty v${ALACRITTY_VERSION} (this may take several minutes)..."
+            cargo install alacritty --version "${ALACRITTY_VERSION}" --locked 2>/dev/null && \
+                echo "    Alacritty v${ALACRITTY_VERSION} installed" || \
+                echo "    Failed to install Alacritty"
+        else
+            echo "  Skipping Alacritty (cargo not available)"
+        fi
     fi
 else
     echo "  Alacritty v${ALACRITTY_INSTALLED} already installed"
@@ -624,8 +666,9 @@ GHOSTTY_VERSION="{{ .tools.ghostty.version }}"
 GHOSTTY_INSTALLED=$("$HOME/.local/bin/ghostty" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "not-installed")
 
 if [[ "$GHOSTTY_INSTALLED" != "$GHOSTTY_VERSION" ]]; then
-    # Check for required system dependencies
-    if ! pkg-config --exists gtk4 2>/dev/null; then
+    if [[ "$OS" == "darwin" ]]; then
+        echo "  Skipping Ghostty (install via 'brew install --cask ghostty' on macOS)"
+    elif ! pkg-config --exists gtk4 2>/dev/null; then
         echo "  Skipping Ghostty (missing system deps: gtk4)"
         echo "    Install with: apt install libgtk-4-dev libadwaita-1-dev"
     elif command -v zig >/dev/null 2>&1 || [[ -x "$ZIG_DIR/zig" ]]; then

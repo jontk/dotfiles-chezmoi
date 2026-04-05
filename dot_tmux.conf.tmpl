@@ -161,3 +161,14 @@ bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy
 bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
 bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
 {{- end }}
+
+# =============================================================================
+# Plugins (TPM)
+# =============================================================================
+
+# Plugin manager path
+set-environment -g TMUX_PLUGIN_MANAGER_PATH '~/.config/tmux/plugins'
+
+# Initialize TPM (keep this at the very bottom)
+if-shell '[ -f ~/.config/tmux/plugins/tpm/tpm ]' \
+    'run "~/.config/tmux/plugins/tpm/tpm"'

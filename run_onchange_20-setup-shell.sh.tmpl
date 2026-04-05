@@ -52,15 +52,11 @@ fi
 {{- end }}
 
 {{- if .features.tmux }}
-# Install TPM (Tmux Plugin Manager) if not present
-if [[ ! -d ~/.tmux/plugins/tpm ]]; then
-    echo "Installing TPM (Tmux Plugin Manager)..."
-    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-fi
+# TPM is installed by .chezmoiexternal.toml to ~/.config/tmux/plugins/tpm
 # Install tmux plugins via TPM
-if [[ -x ~/.tmux/plugins/tpm/bin/install_plugins ]]; then
+if [[ -x ~/.config/tmux/plugins/tpm/bin/install_plugins ]]; then
     echo "Installing tmux plugins..."
-    ~/.tmux/plugins/tpm/bin/install_plugins || true
+    ~/.config/tmux/plugins/tpm/bin/install_plugins || true
 fi
 {{- end }}
 
