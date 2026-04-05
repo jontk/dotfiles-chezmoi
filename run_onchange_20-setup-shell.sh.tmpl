@@ -56,7 +56,8 @@ fi
 # Install tmux plugins via TPM
 if [[ -x ~/.config/tmux/plugins/tpm/bin/install_plugins ]]; then
     echo "Installing tmux plugins..."
-    ~/.config/tmux/plugins/tpm/bin/install_plugins || true
+    TMUX_PLUGIN_MANAGER_PATH="$HOME/.config/tmux/plugins" \
+        ~/.config/tmux/plugins/tpm/bin/install_plugins || true
 fi
 {{- end }}
 
