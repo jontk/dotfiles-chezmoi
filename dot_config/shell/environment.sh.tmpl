@@ -14,7 +14,6 @@ mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
 # Path configuration - add common development paths
 typeset -gU path 2>/dev/null || true  # Remove duplicates (zsh)
-PATH="$HOME/.local/bin:$PATH"
 
 # Development language paths
 export GOPATH="${GOPATH:-$XDG_DATA_HOME/go}"
@@ -230,6 +229,9 @@ case "$(uname -s)" in
         export QT_STYLE_OVERRIDE=gtk3
         ;;
 esac
+
+# User-managed tools (eget, etc.) - highest priority after fnm
+PATH="$HOME/.local/bin:$PATH"
 
 # Clean up PATH - remove duplicates
 PATH=$(echo "$PATH" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':' | sed 's/:$//')
