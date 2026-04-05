@@ -56,8 +56,11 @@ fi
 # Install tmux plugins via TPM
 if [[ -x ~/.config/tmux/plugins/tpm/bin/install_plugins ]]; then
     echo "Installing tmux plugins..."
-    TMUX_PLUGIN_MANAGER_PATH="$HOME/.config/tmux/plugins" \
-        ~/.config/tmux/plugins/tpm/bin/install_plugins || true
+    # TPM reads TMUX_PLUGIN_MANAGER_PATH from the tmux server (not shell env).
+    # If a tmux server is already running with an old config, it won't have the
+    # variable. Set it directly in the server environment before installing.
+    tmux start-server\; set-environment -g TMUX_PLUGIN_MANAGER_PATH "$HOME/.config/tmux/plugins" 2>/dev/null
+    ~/.config/tmux/plugins/tpm/bin/install_plugins || true
 fi
 {{- end }}
 
