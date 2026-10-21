@@ -30,6 +30,11 @@ cat > "$BREWFILE" <<'BREWFILE_EOF'
 {{ includeTemplate "dot_config/homebrew/Brewfile.tmpl" . }}
 BREWFILE_EOF
 
+# Homebrew refuses formulae from third-party taps until they are trusted.
+# Trust only the specific formulae used, not the whole tap.
+brew tap hashicorp/tap >/dev/null
+brew trust --formula hashicorp/tap/terraform || true
+
 echo "Applying Brewfile (profile: {{ .profile }})..."
 # No --cleanup: on managed machines MDM installs its own apps and removing
 # anything not listed here could fight with it.
