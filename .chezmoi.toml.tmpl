@@ -2,6 +2,7 @@
 {{- $gitEmail := promptStringOnce . "git.email" "Git email" "" -}}
 {{- $gitName := promptStringOnce . "git.name" "Git name" "" -}}
 {{- $githubUsername := promptStringOnce . "github_username" "GitHub username" "" -}}
+{{- $githubKey := promptStringOnce . "git.githubKey" "GitHub SSH key path" "~/.ssh/id_ed25519" -}}
 {{- $workGitEmail := "" -}}
 {{- $workGitName := "" -}}
 {{- $workGpgKey := "" -}}
@@ -19,7 +20,7 @@
     [data.git]
         email = {{ $gitEmail | quote }}
         name = {{ $gitName | quote }}
-        githubKey = ""
+        githubKey = {{ $githubKey | quote }}
         gitlabKey = ""
         workEmail = {{ $workGitEmail | quote }}
         workName = {{ $workGitName | quote }}

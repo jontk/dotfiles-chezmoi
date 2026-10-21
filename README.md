@@ -99,9 +99,11 @@ chezmoi apply
 ├── .chezmoiexternal.toml           # External dependencies (vim-plug, TPM, shell completions)
 ├── .chezmoiignore                  # OS/profile-specific file exclusions
 │
-├── run_once_before_10-install-packages.sh.tmpl  # System packages (apt/dnf/nix)
+├── run_onchange_before_05-darwin-homebrew.sh.tmpl # macOS: Homebrew + Brewfile
+├── run_once_before_10-install-packages.sh.tmpl  # System packages (apt/dnf)
 ├── run_onchange_15-install-user-tools.sh.tmpl   # User-space CLI tools
 ├── run_onchange_20-setup-shell.sh.tmpl          # Post-install shell setup
+├── run_onchange_after_30-darwin-defaults.sh.tmpl # macOS: user preferences (defaults write)
 │
 ├── dot_bashrc.tmpl                 # Bash configuration
 ├── dot_zshrc.tmpl                  # Zsh configuration
@@ -130,11 +132,12 @@ For **personal**, **work**, and **experimental** profiles, a comprehensive set o
 
 ### Installation Pipeline
 
-The installation runs in three stages:
+The installation runs in these stages:
 
-1. **System packages** (`run_once_before_10-install-packages.sh.tmpl`) — OS package manager installs (apt, dnf, or nix-darwin)
+1. **System packages** — on macOS, `run_onchange_before_05-darwin-homebrew.sh.tmpl` installs Homebrew and applies `~/.config/homebrew/Brewfile` (re-runs when the Brewfile changes); on Linux, `run_once_before_10-install-packages.sh.tmpl` uses apt or dnf
 2. **User-space tools** (`run_onchange_15-install-user-tools.sh.tmpl`) — binary downloads and language toolchains
 3. **Shell setup** (`run_onchange_20-setup-shell.sh.tmpl`) — fzf keybindings, tmux plugins, Node.js LTS
+4. **macOS defaults** (`run_onchange_after_30-darwin-defaults.sh.tmpl`) — Dock, Finder, keyboard, trackpad and other user preferences. System-level settings are left to MDM.
 
 ### CLI Tools (via eget)
 
@@ -254,7 +257,7 @@ JetBrainsMono, FiraCode, and Hack Nerd Fonts are installed to the system font di
 ## Platform Support
 
 Tested on:
-- **macOS**: nix-darwin for system packages; user-space tools installed independently
+- **macOS**: Homebrew (Brewfile) for system packages and GUI apps; user-space tools installed independently
 - **Fedora/RHEL/Rocky/AlmaLinux**: DNF package management
 - **Ubuntu/Debian**: APT package management
 - **NixOS**: System packages managed declaratively; user-space tools installed independently

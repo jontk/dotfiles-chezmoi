@@ -8,6 +8,18 @@ Library/
 {{- if ne .chezmoi.os "linux" }}
 # Linux-only files
 .config/systemd/
+.config/sway/
+.config/waybar/
+.config/wofi/
+.config/dunst/
+.config/foot/
+.config/gtk-3.0/
+.config/gtk-4.0/
+.gtkrc-2.0
+.config/mimeapps.list
+.config/user-dirs.dirs
+.local/share/applications/
+.local/bin/enable-systemd-services.sh
 {{- end }}
 
 # Profile-specific ignores
@@ -58,6 +70,13 @@ Library/
 .claude/
 {{- end }}
 
+{{- if eq .profile "work" }}
+# Work machines: keep personal Claude Code settings and global CLAUDE.md out;
+# agents are still deployed
+.claude/settings.json
+.claude/CLAUDE.md
+{{- end }}
+
 {{- if eq .profile "minimal" }}
 # Minimal profile - ignore everything except shell and git
 .config/nvim/
@@ -77,6 +96,7 @@ Library/
 .github/
 .gitignore
 .devcontainer/
+docker-compose.sway.yml
 README.md
 LICENSE
 CONTRIBUTING.md

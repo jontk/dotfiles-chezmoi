@@ -1,0 +1,39 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+# Install Homebrew (if missing) and apply ~/.config/homebrew/Brewfile.
+# Re-runs whenever the rendered Brewfile below changes.
+set -euo pipefail
+
+if ! command -v brew >/dev/null 2>&1; then
+    if [[ -x /opt/homebrew/bin/brew ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [[ -x /usr/local/bin/brew ]]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    else
+        echo "Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        if [[ -x /opt/homebrew/bin/brew ]]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        else
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
+    fi
+fi
+
+export HOMEBREW_NO_ANALYTICS=1
+
+# The Brewfile is rendered by chezmoi into the target directory, but "before"
+# scripts run prior to file updates, so render it to a temp file here.
+BREWFILE="$(mktemp -t Brewfile)"
+trap 'rm -f "$BREWFILE"' EXIT
+cat > "$BREWFILE" <<'BREWFILE_EOF'
+{{ includeTemplate "dot_config/homebrew/Brewfile.tmpl" . }}
+BREWFILE_EOF
+
+echo "Applying Brewfile (profile: {{ .profile }})..."
+# No --cleanup: on managed machines MDM installs its own apps and removing
+# anything not listed here could fight with it.
+brew bundle --file="$BREWFILE" --no-upgrade || {
+    echo "Some Brewfile entries failed; re-run 'brew bundle --file=~/.config/homebrew/Brewfile' to retry."
+}
+{{- end }}

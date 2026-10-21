@@ -2,41 +2,11 @@
 set -e
 
 {{- if eq .chezmoi.os "darwin" }}
-# macOS: Package installation is handled by nix-darwin (nixconf).
-# All CLI tools, fonts, and GUI casks are declared in:
-#   nixconf/hosts/macos-laptop/default.nix
-#
-# nix-darwin manages:
-#   - environment.systemPackages (CLI tools via nix)
-#   - homebrew.brews (services: postgresql, redis, nginx; macOS-only tools)
-#   - homebrew.casks (GUI apps: docker, zed, firefox, vscode, etc.)
-#   - fonts.packages (nerd fonts)
-#
-# To apply: darwin-rebuild switch --flake ~/src/github.com/jontk/nixconf
-#
-# The following brew installs are kept commented out as reference for
-# non-nix macOS machines or if nix-darwin is not available.
-
-# brew install git curl wget
-# brew install tmux reattach-to-user-namespace zellij
-# brew install vim neovim
-# brew install --cask zed
-# brew install python
-# brew install --cask docker
-# brew install kubectl k9s helm kubectx stern kustomize
-# brew install --cask font-jetbrains-mono-nerd-font
-# brew install tree htop watch ncdu duf dust procs tldr
-# brew install nmap mtr
-# brew install make cmake pkg-config
-# brew install p7zip xz
-# brew install tig gitui
-# brew install pandoc texlive ghostscript
-# brew install ffmpeg imagemagick yt-dlp
-# brew install --cask vlc mpv
-# brew install task timewarrior borgbackup syncthing
-
-echo "macOS detected — system packages managed by nix-darwin."
-echo "Run 'darwin-rebuild switch --flake ~/src/github.com/jontk/nixconf' to install/update."
+# macOS: Homebrew packages, casks and fonts are declared in
+#   ~/.config/homebrew/Brewfile (dot_config/homebrew/Brewfile.tmpl)
+# and applied by run_onchange_before_05-darwin-homebrew.sh.
+# macOS user preferences are applied by run_onchange_after_30-darwin-defaults.sh.
+echo "macOS detected — system packages managed by Homebrew (see ~/.config/homebrew/Brewfile)."
 
 {{- else if eq .chezmoi.osRelease.id "fedora" }}
 # Fedora

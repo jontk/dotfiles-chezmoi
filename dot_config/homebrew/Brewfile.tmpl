@@ -1,0 +1,232 @@
+# Brewfile - macOS packages
+# Managed by chezmoi - Profile: {{ .profile }}
+# Applied by run_onchange_before_05-darwin-homebrew.sh (brew bundle)
+#
+# Version-pinned CLI tools (ripgrep, fd, bat, eza, fzf, delta, lazygit, jq, yq,
+# starship, zoxide, gh, buf, ...) are installed to ~/.local/bin by
+# run_onchange_15-install-user-tools.sh and intentionally not listed here.
+
+# =============================================================================
+# Taps
+# =============================================================================
+tap "hashicorp/tap"
+
+# =============================================================================
+# macOS utilities
+# =============================================================================
+brew "mas"                          # Mac App Store CLI
+brew "terminal-notifier"
+brew "dockutil"
+brew "pngpaste"                     # Paste images from clipboard
+brew "reattach-to-user-namespace"   # tmux clipboard on macOS
+brew "switchaudio-osx"
+brew "blueutil"
+brew "xcodes"
+
+# =============================================================================
+# GNU / core utilities
+# =============================================================================
+brew "coreutils"
+brew "moreutils"
+brew "findutils"
+brew "gnu-sed"
+brew "gnu-tar"
+brew "grep"
+brew "gawk"
+brew "watch"
+
+# =============================================================================
+# Files, processes, network
+# =============================================================================
+brew "trash-cli"
+brew "ncdu"
+brew "duf"
+brew "dust"
+brew "procs"
+brew "bottom"
+brew "mtr"
+brew "bandwhich"
+brew "gping"
+brew "nmap"
+brew "netcat"
+brew "whois"
+brew "iperf3"
+brew "wget"
+brew "httpie"
+brew "curlie"
+brew "xh"
+
+# =============================================================================
+# Shell & terminal
+# =============================================================================
+brew "tealdeer"
+brew "sd"
+brew "choose-rust"
+brew "miller"
+brew "tmux"
+brew "zellij"
+brew "micro"
+brew "direnv"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+
+# =============================================================================
+# Version control
+# =============================================================================
+brew "git"
+brew "tig"
+brew "gitui"
+
+# =============================================================================
+# Build tools
+# =============================================================================
+brew "make"
+brew "cmake"
+brew "pkgconf"
+brew "autoconf"
+brew "automake"
+brew "libtool"
+
+# =============================================================================
+# Security
+# =============================================================================
+brew "gnupg"
+brew "pinentry-mac"
+brew "pass"
+brew "gopass"
+brew "mkcert"
+brew "nss"
+brew "doppler"
+
+# =============================================================================
+# Archives
+# =============================================================================
+brew "sevenzip"
+brew "unar"
+brew "xz"
+
+# =============================================================================
+# Databases (clients)
+# =============================================================================
+brew "libpq"                        # psql without the server
+brew "sqlite"
+
+# =============================================================================
+# Media & documents
+# =============================================================================
+brew "ffmpeg"
+brew "imagemagick"
+brew "exiftool"
+brew "mediainfo"
+brew "pandoc"
+brew "poppler"
+brew "ghostscript"
+brew "tesseract"
+
+{{- if .features.kubernetes }}
+
+# =============================================================================
+# Kubernetes
+# =============================================================================
+brew "kubernetes-cli"
+brew "kubectx"
+brew "k9s"
+brew "helm"
+brew "kustomize"
+brew "stern"
+brew "argocd"
+brew "flux"
+{{- end }}
+
+# =============================================================================
+# Cloud / infrastructure
+# =============================================================================
+cask "azure-cli"
+brew "doctl"
+brew "hashicorp/tap/terraform"
+brew "terragrunt"
+brew "pulumi"
+brew "ansible"
+brew "rclone"
+cask "gcloud-cli"
+
+{{- if ne .profile "work" }}
+
+# =============================================================================
+# Personal-only tools
+# =============================================================================
+brew "chezmoi"
+brew "hugo"
+brew "restic"
+brew "borgbackup"
+brew "syncthing"
+brew "task"
+brew "timewarrior"
+brew "yt-dlp"
+brew "sox"
+brew "clisp"
+brew "xcodegen"
+brew "plotutils"
+brew "pstoedit"
+brew "brightness"
+brew "sleepwatcher"
+brew "wifi-password"
+brew "fastfetch"
+brew "cowsay"
+brew "fortune"
+brew "figlet"
+brew "lolcat"
+
+# Services (start with `brew services start <name>`)
+brew "postgresql@15"
+brew "redis"
+brew "nginx"
+{{- end }}
+
+# =============================================================================
+# GUI applications
+# =============================================================================
+cask "firefox"
+cask "google-chrome"
+cask "visual-studio-code"
+cask "iterm2"
+cask "zed"
+cask "rectangle"
+cask "alfred"
+cask "obsidian"
+cask "vlc"
+{{- if .features.docker }}
+cask "docker-desktop"
+{{- end }}
+
+{{- if ne .profile "work" }}
+# Personal machines only. On work machines these are either installed by
+# MDM (Slack, 1Password, Tailscale) or not appropriate for a managed device.
+cask "slack"
+cask "1password"
+cask "tailscale-app"
+cask "discord"
+cask "zoom"
+cask "notion"
+cask "spotify"
+cask "bartender"
+cask "cleanmymac"
+cask "istat-menus"
+cask "little-snitch"
+cask "carbon-copy-cloner"
+cask "mactex-no-gui"
+{{- end }}
+
+{{- if .features.fonts }}
+
+# =============================================================================
+# Fonts
+# =============================================================================
+cask "font-jetbrains-mono-nerd-font"
+cask "font-fira-code-nerd-font"
+cask "font-hack-nerd-font"
+cask "font-fira-code"
+cask "font-roboto"
+cask "font-roboto-mono"
+cask "font-source-code-pro"
+{{- end }}
