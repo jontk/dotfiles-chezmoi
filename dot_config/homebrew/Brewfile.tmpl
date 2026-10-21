@@ -73,6 +73,7 @@ brew "zsh-syntax-highlighting"
 # =============================================================================
 # Version control
 # =============================================================================
+brew "bash"                         # bash 4+ for git hooks (macOS ships 3.2)
 brew "git"
 brew "chezmoi"
 brew "tig"
@@ -187,15 +188,16 @@ brew "nginx"
 # GUI applications
 # =============================================================================
 cask "firefox"
-cask "google-chrome"
+cask "google-chrome", args: { adopt: true }
 cask "visual-studio-code"
-cask "iterm2"
+cask "iterm2", args: { adopt: true }
 cask "zed"
 cask "rectangle"
 cask "alfred"
 cask "obsidian"
 cask "vlc"
-{{- if .features.docker }}
+{{- if and .features.docker (ne .profile "work") }}
+# Docker Desktop needs a paid licence for larger companies; not on work machines
 cask "docker-desktop"
 {{- end }}
 

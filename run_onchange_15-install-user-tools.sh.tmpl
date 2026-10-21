@@ -582,8 +582,9 @@ echo ""
 echo "Installing terminal emulators..."
 
 # -----------------------------------------------------------------------------
-# Zig (needed for building Ghostty)
+# Zig (needed for building Ghostty on Linux)
 # -----------------------------------------------------------------------------
+{{- if ne .chezmoi.os "darwin" }}
 ZIG_VERSION="{{ .tools.zig.version }}"
 ZIG_DIR="$HOME/.local/zig"
 ZIG_INSTALLED=$("$ZIG_DIR/zig" version 2>/dev/null || echo "not-installed")
@@ -621,6 +622,7 @@ else
 fi
 
 export PATH="$ZIG_DIR:$PATH"
+{{- end }}
 
 # -----------------------------------------------------------------------------
 # Kitty (via official installer)
