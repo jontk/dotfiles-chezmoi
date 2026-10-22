@@ -183,14 +183,14 @@ Installed when the `golang` feature is enabled:
 - **Protobuf**: protoc-gen-go, protoc-gen-go-grpc, protoc-gen-grpc-gateway, protoc-gen-openapiv2, protoc-gen-doc
 - **Release**: goreleaser
 
-### AI Coding Assistants (via `bun install -g`)
+### AI Coding Assistants
 
-| Package | Command |
-|---------|---------|
-| @anthropic-ai/claude-code | `claude` |
-| @google/gemini-cli | `gemini` |
-| @openai/codex | `codex` |
-| @playwright/cli | `playwright-cli` |
+| Tool | Command | Installed via |
+|------|---------|---------------|
+| Claude Code | `claude` | Official installer (`https://claude.ai/install.sh`), self-updating |
+| Codex | `codex` | Official installer (`https://chatgpt.com/codex/install.sh`), self-updating |
+| @google/gemini-cli | `gemini` | `bun install -g` |
+| @playwright/cli | `playwright-cli` | `bun install -g` |
 
 ### Nerd Fonts
 

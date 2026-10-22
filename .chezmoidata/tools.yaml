@@ -75,11 +75,13 @@ tools:
 
   # AI Coding Assistants (npm packages)
   claude_code:
-    package: "@anthropic-ai/claude-code"
+    package: "@anthropic-ai/claude-code"  # only used to remove old bun installs
+    installer: "https://claude.ai/install.sh"
   gemini_cli:
     package: "@google/gemini-cli"
   codex:
-    package: "@openai/codex"
+    package: "@openai/codex"  # only used to remove old bun installs
+    installer: "https://chatgpt.com/codex/install.sh"
   playwright_cli:
     package: "@playwright/cli"
 

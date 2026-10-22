@@ -299,18 +299,49 @@ install_npm_global() {
     fi
 }
 
-# Claude Code - Anthropic's AI coding assistant
-install_npm_global "{{ .tools.claude_code.package }}" "claude"
-
 # Gemini CLI - Google's AI coding assistant
 install_npm_global "{{ .tools.gemini_cli.package }}" "gemini"
-
-# Codex - OpenAI's AI coding assistant
-install_npm_global "{{ .tools.codex.package }}" "codex"
 
 # Playwright CLI - browser automation for coding agents
 install_npm_global "{{ .tools.playwright_cli.package }}" "playwright-cli"
 {{- end }}
+
+# =============================================================================
+# Claude Code and Codex (official native installers)
+# =============================================================================
+# Installed with the vendors' own installers rather than bun: their npm
+# packages fetch the native binary in a postinstall step that bun skips, which
+# leaves a broken "claude"/"codex" wrapper. Both installers put the binary in
+# ~/.local/bin and keep it up to date themselves.
+echo ""
+echo "Installing Claude Code and Codex..."
+export PATH="$HOME/.local/bin:$PATH"  # stops the Codex installer editing shell profiles
+
+remove_bun_global() {
+    local package="$1"
+    if [[ -d "$HOME/.bun/install/global/node_modules/$package" ]] && command -v bun >/dev/null 2>&1; then
+        echo "  Removing bun-installed $package"
+        bun remove -g "$package" >/dev/null 2>&1 || true
+    fi
+}
+
+remove_bun_global "{{ .tools.claude_code.package }}"
+if [[ -x "$HOME/.local/bin/claude" ]]; then
+    echo "  claude already installed"
+else
+    echo "  Installing Claude Code..."
+    curl -fsSL {{ .tools.claude_code.installer }} | bash >/dev/null 2>&1 && \
+        echo "    claude installed" || echo "    Failed to install Claude Code"
+fi
+
+remove_bun_global "{{ .tools.codex.package }}"
+if [[ -x "$HOME/.local/bin/codex" ]]; then
+    echo "  codex already installed"
+else
+    echo "  Installing Codex..."
+    curl -fsSL {{ .tools.codex.installer }} | sh >/dev/null 2>&1 && \
+        echo "    codex installed" || echo "    Failed to install Codex"
+fi
 
 {{- if .features.python }}
 # =============================================================================
@@ -734,8 +765,9 @@ echo "    - starship"
 {{- end }}
 {{- if .features.nodejs }}
 echo "  Node.js: fnm (~/.local/bin/fnm), bun (~/.bun/bin/bun)"
-echo "  AI assistants: claude, gemini, codex"
+echo "  AI assistants (bun): gemini, playwright-cli"
 {{- end }}
+echo "  Claude Code, Codex: official installers (~/.local/bin)"
 {{- if .features.python }}
 echo "  Python: uv (~/.local/bin/uv)"
 {{- end }}
