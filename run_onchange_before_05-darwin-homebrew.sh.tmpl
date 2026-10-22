@@ -24,7 +24,8 @@ export HOMEBREW_NO_ANALYTICS=1
 
 # The Brewfile is rendered by chezmoi into the target directory, but "before"
 # scripts run prior to file updates, so render it to a temp file here.
-BREWFILE="$(mktemp -t Brewfile)"
+# Explicit XXXXXX template: works with both BSD and GNU (coreutils gnubin) mktemp
+BREWFILE="$(mktemp "${TMPDIR:-/tmp}/Brewfile.XXXXXX")"
 trap 'rm -f "$BREWFILE"' EXIT
 cat > "$BREWFILE" <<'BREWFILE_EOF'
 {{ includeTemplate "dot_config/homebrew/Brewfile.tmpl" . }}
