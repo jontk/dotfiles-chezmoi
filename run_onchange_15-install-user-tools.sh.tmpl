@@ -353,7 +353,9 @@ UV_INSTALLED=$(get_version uv "--version")
 
 if [[ "$UV_INSTALLED" != "$UV_VERSION" ]]; then
     echo "Installing uv v${UV_VERSION}..."
-    curl -fsSL https://astral.sh/uv/install.sh | env UV_VERSION="${UV_VERSION}" sh >/dev/null 2>&1
+    # UV_NO_MODIFY_PATH: don't append '. "$HOME/.local/bin/env"' to the
+    # chezmoi-managed shell rc files; environment.sh already adds ~/.local/bin
+    curl -fsSL https://astral.sh/uv/install.sh | env UV_VERSION="${UV_VERSION}" UV_NO_MODIFY_PATH=1 sh >/dev/null 2>&1
     echo "  uv v${UV_VERSION} installed"
 else
     echo "uv v${UV_INSTALLED} already installed"
