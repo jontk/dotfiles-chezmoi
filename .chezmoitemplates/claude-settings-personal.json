@@ -6,7 +6,7 @@
     "GIT_EDITOR": "vim",
     "VISUAL": "vim"
   },
-  "includeCoAuthoredBy": false,
+  "attribution": false,
   "permissions": {
     "allow": [
       "Bash(git:*)",

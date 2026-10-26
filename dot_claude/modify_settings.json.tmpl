@@ -1,0 +1,24 @@
+#!/bin/sh
+# Merge managed keys into ~/.claude/settings.json instead of replacing it, so
+# keys written by Claude Code (/config) and other tools (e.g. iTerm hooks) survive.
+set -eu
+
+current=$(cat)
+[ -n "$current" ] || current='{}'
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "chezmoi: jq not found, leaving ~/.claude/settings.json unchanged" >&2
+  printf '%s\n' "$current"
+  exit 0
+fi
+
+{{- if eq .profile "work" }}
+managed='{"attribution": false}'
+{{- else }}
+managed=$(cat <<'EOF'
+{{ template "claude-settings-personal.json" . }}
+EOF
+)
+{{- end }}
+
+printf '%s\n' "$current" | jq --argjson managed "$managed" '. * $managed'

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Set commit_attribution = "" in ~/.codex/config.toml, keeping everything else
+# the Codex app writes there. Top-level keys must come before the first table.
+set -eu
+
+awk '
+  BEGIN { done = 0 }
+  !done && /^[[:space:]]*commit_attribution[[:space:]]*=/ {
+    print "commit_attribution = \"\""; done = 1; next
+  }
+  !done && /^[[:space:]]*\[/ {
+    print "commit_attribution = \"\""; print ""; done = 1
+  }
+  { print }
+  END { if (!done) print "commit_attribution = \"\"" }
+'

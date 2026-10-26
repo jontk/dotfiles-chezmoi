@@ -1,5 +1,7 @@
 # User-Level CLAUDE.md
 
+{{ template "agent-conventions.md" . }}
+{{- if ne .profile "work" }}
 Global preferences and architectural standards for all projects.
 
 ## Technology Stack
@@ -139,3 +141,4 @@ api/proto/<project>/
 - Provide options with trade-offs
 - Reference best practices and documentation
 - Consider long-term maintainability
+{{- end }}

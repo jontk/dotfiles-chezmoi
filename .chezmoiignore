@@ -66,15 +66,9 @@ Library/
 {{- end }}
 
 {{- if or (eq .profile "minimal") (eq .profile "server") }}
-# Skip Claude Code config on minimal/server profiles
+# Skip Claude Code and Codex config on minimal/server profiles
 .claude/
-{{- end }}
-
-{{- if eq .profile "work" }}
-# Work machines: keep personal Claude Code settings and global CLAUDE.md out;
-# agents are still deployed
-.claude/settings.json
-.claude/CLAUDE.md
+.codex/
 {{- end }}
 
 {{- if eq .profile "minimal" }}
