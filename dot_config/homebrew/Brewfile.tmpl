@@ -10,6 +10,7 @@
 # Taps
 # =============================================================================
 tap "hashicorp/tap"
+tap "azure/kubelogin"
 
 # =============================================================================
 # macOS utilities
@@ -146,6 +147,7 @@ brew "flux"
 # Cloud / infrastructure
 # =============================================================================
 cask "azure-cli"
+brew "azure/kubelogin/kubelogin"
 brew "doctl"
 brew "hashicorp/tap/terraform"
 brew "opentofu"
@@ -201,6 +203,7 @@ cask "alfred"
 cask "obsidian"
 cask "slack", args: { adopt: true }
 cask "1password", args: { adopt: true }
+cask "1password-cli"
 # Desktop apps; the claude/codex CLIs come from their official installers in
 # run_onchange_15, so don't add the claude-code or codex casks here
 cask "claude", args: { adopt: true }
